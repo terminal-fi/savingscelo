@@ -7,13 +7,15 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "./interfaces/IAccounts.sol";
 import "./interfaces/ILockedGold.sol";
+import "./interfaces/IElection.sol";
 
 contract SavingsCELO is ERC20 {
 	using SafeMath for uint256;
 
-	IERC20 public _GoldToken;
 	IAccounts public _Accounts;
+	IERC20 public _GoldToken;
 	ILockedGold public _LockedGold;
+	IElection public _Election;
 	address public _owner;
 
 	struct PendingWithdrawal {
@@ -32,12 +34,14 @@ contract SavingsCELO is ERC20 {
 	constructor (
 		address Accounts,
 		address GoldToken,
-		address LockedGold
+		address LockedGold,
+		address Election
 	) ERC20("Savings CELO", "sCELO") public {
 		_owner = msg.sender;
+		_Accounts = IAccounts(Accounts);
 		_GoldToken = IERC20(GoldToken);
 		_LockedGold = ILockedGold(LockedGold);
-		_Accounts = IAccounts(Accounts);
+		_Election = IElection(Election);
 		require(
 			_Accounts.createAccount(),
 			"createAccount failed");
@@ -70,11 +74,16 @@ contract SavingsCELO is ERC20 {
 		uint256 toLock = _GoldToken.balanceOf(address(this));
 		assert(toLock >= amount);
 		_LockedGold.lock.value(toLock)();
-		// TODO(zviad): Should we attempt to auto vote or activate votes here?
 		emit Deposited(msg.sender, amount, toMint);
 	}
 
-	function withdrawStart(uint256 savingsAmount) external {
+	function withdrawStart(
+		uint256 savingsAmount,
+		address lesserAfterPendingRevoke,
+		address greaterAfterPendingRevoke,
+		address lesserAfterActiveRevoke,
+		address greaterAfterActiveRevoke
+		) external {
 		uint256 totalCELO = totalSupplyCELO();
 		uint256 totalSavingsCELO = this.totalSupply();
 		_burn(msg.sender, savingsAmount);
@@ -82,10 +91,15 @@ contract SavingsCELO is ERC20 {
 		// (supply / totalCELO) === (supply - savingsAmount) / (totalCELO - toUnlock)
 		uint256 toUnlock = savingsAmount * totalCELO / totalSavingsCELO;
 		uint256 nonvoting = _LockedGold.getAccountNonvotingLockedGold(address(this));
-		if (nonvoting < toUnlock) {
-			// TODO(zviad): will need to force revoke votes to have enough nonvoting CELO.
+		if (toUnlock > nonvoting) {
+			revokeVotes(
+				toUnlock - nonvoting,
+				lesserAfterPendingRevoke,
+				greaterAfterPendingRevoke,
+				lesserAfterActiveRevoke,
+				greaterAfterActiveRevoke
+			);
 		}
-		require(nonvoting >= toUnlock, "unable to unlock: revoking votes has failed");
 		_LockedGold.unlock(toUnlock);
 
 		(uint256[] memory pendingValues, uint256[] memory pendingTimestamps) = _LockedGold.getPendingWithdrawals(address(this));
@@ -94,6 +108,42 @@ contract SavingsCELO is ERC20 {
 		assert(pendingValue == toUnlock);
 		pendingByAddr[msg.sender].push(PendingWithdrawal(pendingValue, pendingTimestamp));
 		emit WithdrawStarted(msg.sender, savingsAmount, pendingValue);
+	}
+
+	function revokeVotes(
+		uint256 toRevoke,
+		address lesserAfterPendingRevoke,
+		address greaterAfterPendingRevoke,
+		address lesserAfterActiveRevoke,
+		address greaterAfterActiveRevoke
+	) private {
+		address[] memory votedGroups = _Election.getGroupsVotedForByAccount(address(this));
+		require(votedGroups.length > 0, "not enough votes to revoke");
+		uint256 revokeIndex = votedGroups.length - 1;
+		address revokeGroup = votedGroups[revokeIndex];
+		uint256 pendingVotes = _Election.getPendingVotesForGroupByAccount(revokeGroup, address(this));
+		uint256 activeVotes = _Election.getActiveVotesForGroupByAccount(revokeGroup, address(this));
+		require(
+			pendingVotes + activeVotes >= toRevoke,
+			"not enough unlocked CELO and revokable votes");
+
+		uint256 toRevokePending = pendingVotes;
+		if (toRevokePending > toRevoke) {
+			toRevokePending = toRevoke;
+		}
+		uint256 toRevokeActive = toRevoke - toRevokePending;
+		if (toRevokePending > 0) {
+			require(
+				_Election.revokePending(
+				revokeGroup, toRevokePending, lesserAfterPendingRevoke, greaterAfterPendingRevoke, revokeIndex),
+				"revokePending failed");
+		}
+		if (toRevokeActive > 0) {
+			require(
+				_Election.revokeActive(
+				revokeGroup, toRevokeActive, lesserAfterActiveRevoke, greaterAfterActiveRevoke, revokeIndex),
+				"revokeActive failed");
+		}
 	}
 
 	function withdrawFinish(uint256 index, uint256 indexGlobal) external {
@@ -116,7 +166,6 @@ contract SavingsCELO is ERC20 {
 		deletePendingWithdrawal(pending, index);
 		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, toRelock);
 		_mint(msg.sender, toMint);
-		// TODO(zviad): Should we attempt to auto vote or activate votes here?
 		emit WithdrawCanceled(msg.sender, toRelock, toMint);
 	}
 
@@ -135,7 +184,7 @@ contract SavingsCELO is ERC20 {
 		return (values, timestamps);
 	}
 
-	function savingsCELOasCELO(uint256 amount) external returns (uint256) {
+	function savingsCELOasCELO(uint256 amount) external view returns (uint256) {
 		uint256 totalSavingsCELO = this.totalSupply();
 		if (totalSavingsCELO == 0) {
 			return 0;
@@ -153,7 +202,7 @@ contract SavingsCELO is ERC20 {
 	function savingsToMint(
 		uint256 totalSavingsCELO,
 		uint256 totalCELO,
-		uint256 celoToAdd) private view returns (uint256) {
+		uint256 celoToAdd) private pure returns (uint256) {
 		if (totalCELO == 0) {
 			// 2^16 is chosen arbitrarily. since maximum amount of CELO is capped at 1BLN, we can afford to
 			// multiply it be 2^16 without running into any overflow issues. This also makes it clear that

@@ -1,8 +1,8 @@
-import { newKit } from "@celo/contractkit"
+import { ContractKit, newKit } from "@celo/contractkit"
 import { PendingWithdrawal } from "@celo/contractkit/lib/wrappers/LockedGold";
 import BigNumber from "bignumber.js";
 import { increaseTime } from "celo-devchain"
-import { Deposited, WithdrawFinished } from "../types/truffle-contracts/SavingsCELO";
+import { Deposited, SavingsCELOInstance, WithdrawFinished } from "../types/truffle-contracts/SavingsCELO";
 
 const SavingsCELO = artifacts.require("SavingsCELO");
 
@@ -17,6 +17,20 @@ function indexGlobal(
 		throw Error(`pendings mismatch!`)
 	}
 	return idx
+}
+
+async function withdrawStart(
+	kit: ContractKit,
+	sCELO: SavingsCELOInstance,
+	from: string,
+	savingsAmt: BigNumber.Value) {
+	return sCELO.withdrawStart(
+		new BigNumber(savingsAmt).toFixed(0),
+		"0x0000000000000000000000000000000000000000",
+		"0x0000000000000000000000000000000000000000",
+		"0x0000000000000000000000000000000000000000",
+		"0x0000000000000000000000000000000000000000",
+		{from: from})
 }
 
 contract('SavingsCELO', (accounts) => {
@@ -45,18 +59,18 @@ contract('SavingsCELO', (accounts) => {
 		assert.isTrue(a0savings.gtn(0))
 
 		try{
-			await sCELO.withdrawStart(a0savings, {from: a1})
+			await withdrawStart(kit, sCELO, a1, a0savings.toString())
 			assert.fail("withdraw from `a1` must have failed!")
 		} catch {}
 		try{
-			await sCELO.withdrawStart(a0savings.addn(1), {from: a0})
+			await withdrawStart(kit, sCELO, a0, a0savings.addn(1).toString())
 			assert.fail("withdraw of too much CELO must have failed!")
 		} catch {}
 
 		let toWithdraw0 = a0savings.divn(2)
 		let toCancel = a0savings.sub(toWithdraw0)
-		await sCELO.withdrawStart(toWithdraw0, {from: a0})
-		await sCELO.withdrawStart(toCancel, {from: a0})
+		await withdrawStart(kit, sCELO, a0, toWithdraw0.toString())
+		await withdrawStart(kit, sCELO, a0, toCancel.toString())
 
 		let pendings = await sCELO.pendingWithdrawals(a0)
 		let pendingsGlobal = await lockedGold.getPendingWithdrawals(sCELO.address)
