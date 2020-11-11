@@ -1,0 +1,5 @@
+build/
+migrations/
+node_modules/
+test/
+types/
