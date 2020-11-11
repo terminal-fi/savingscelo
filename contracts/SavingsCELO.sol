@@ -22,7 +22,7 @@ contract SavingsCELO is ERC20 {
 	}
 	mapping(address => PendingWithdrawal[]) internal pendingByAddr;
 
-	event Deposit(address indexed from, uint256 celoAmount, uint256 savingsAmount);
+	event Deposited(address indexed from, uint256 celoAmount, uint256 savingsAmount);
 	event WithdrawStarted(address indexed from, uint256 savingsAmount, uint256 celoAmount);
 	event WithdrawFinished(address indexed from, uint256 celoAmount);
 	event WithdrawCanceled(address indexed from, uint256 celoAmount, uint256 savingsAmount);
@@ -39,31 +39,29 @@ contract SavingsCELO is ERC20 {
 			"createAccount failed");
 	}
 
-	function DepositCELO(uint256 amount) external {
-		uint256 totalCELO = totalCELO();
-		uint256 supply = this.totalSupply();
+	function depositCELO(uint256 amount) external {
+		uint256 totalCELO = totalSupplyCELO();
+		uint256 totalSavingsCELO = this.totalSupply();
 		require(
 			_GoldToken.transferFrom(msg.sender, address(this), amount),
 			"transfer of CELO failed");
-		// toMint formula comes from:
-		// (supply / totalCELO) === (supply + toMint) / (totalCELO + amount)
-		uint256 toMint = amount * supply / totalCELO;
+		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, amount);
 		_mint(msg.sender, toMint);
 
 		uint256 toLock = _GoldToken.balanceOf(address(this));
 		assert(toLock >= amount);
 		_LockedGold.lock.value(toLock)();
 		// TODO(zviad): Should we attempt to auto vote or activate votes here?
-		emit Deposit(msg.sender, amount, toMint);
+		emit Deposited(msg.sender, amount, toMint);
 	}
 
-	function WithdrawStart(uint256 savingsAmount) external {
-		uint256 totalCELO = totalCELO();
-		uint256 supply = this.totalSupply();
+	function withdrawStart(uint256 savingsAmount) external {
+		uint256 totalCELO = totalSupplyCELO();
+		uint256 totalSavingsCELO = this.totalSupply();
 		_burn(msg.sender, savingsAmount);
 		// toUnlock formula comes from:
 		// (supply / totalCELO) === (supply - savingsAmount) / (totalCELO - toUnlock)
-		uint256 toUnlock = savingsAmount * totalCELO / supply;
+		uint256 toUnlock = savingsAmount * totalCELO / totalSavingsCELO;
 		uint256 nonvoting = _LockedGold.getAccountNonvotingLockedGold(address(this));
 		if (nonvoting < toUnlock) {
 			// TODO(zviad): will need to force revoke votes to have enough nonvoting CELO.
@@ -79,7 +77,7 @@ contract SavingsCELO is ERC20 {
 		emit WithdrawStarted(msg.sender, savingsAmount, pendingValue);
 	}
 
-	function WithdrawFinish(uint256 index, uint256 indexGlobal) external {
+	function withdrawFinish(uint256 index, uint256 indexGlobal) external {
 		PendingWithdrawal[] storage pending = verifyWithdrawArgs(msg.sender, index, indexGlobal);
 		uint256 toWithdraw = pending[index].value;
 		_LockedGold.withdraw(indexGlobal);
@@ -90,23 +88,60 @@ contract SavingsCELO is ERC20 {
 		emit WithdrawFinished(msg.sender, toWithdraw);
 	}
 
-	function WithdrawCancel(uint256 index, uint256 indexGlobal) external {
+	function withdrawCancel(uint256 index, uint256 indexGlobal) external {
 		PendingWithdrawal[] storage pending = verifyWithdrawArgs(msg.sender, index, indexGlobal);
-		uint256 totalCELO = totalCELO();
-		uint256 supply = this.totalSupply();
+		uint256 totalCELO = totalSupplyCELO();
+		uint256 totalSavingsCELO = this.totalSupply();
 		uint256 toRelock = pending[index].value;
 		_LockedGold.relock(indexGlobal, toRelock);
 		deletePendingWithdrawal(pending, index);
-		uint256 toMint = toRelock * supply / totalCELO;
+		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, toRelock);
 		_mint(msg.sender, toMint);
 		// TODO(zviad): Should we attempt to auto vote or activate votes here?
 		emit WithdrawCanceled(msg.sender, toRelock, toMint);
 	}
 
-	function totalCELO() internal view returns(uint256) {
+	function pendingWithdrawals(address addr)
+		external
+		view
+		returns (uint256[] memory, uint256[] memory) {
+		PendingWithdrawal[] storage pending = pendingByAddr[addr];
+		uint256 length = pending.length;
+		uint256[] memory values = new uint256[](length);
+		uint256[] memory timestamps = new uint256[](length);
+		for (uint256 i = 0; i < length; i = i.add(1)) {
+			values[i] = pending[i].value;
+			timestamps[i] = pending[i].timestamp;
+		}
+		return (values, timestamps);
+	}
+
+	function savingsCELOasCELO(uint256 amount) external returns (uint256) {
+		uint256 totalSavingsCELO = this.totalSupply();
+		if (totalSavingsCELO == 0) {
+			return 0;
+		}
+		uint256 totalCELO = totalSupplyCELO();
+		return amount * totalCELO / totalSavingsCELO;
+	}
+
+	function totalSupplyCELO() internal view returns(uint256) {
 		uint256 locked = _LockedGold.getAccountTotalLockedGold(address(this));
 		uint256 unlocked = _GoldToken.balanceOf(address(this));
 		return locked + unlocked;
+	}
+
+	function savingsToMint(
+		uint256 totalSavingsCELO,
+		uint256 totalCELO,
+		uint256 celoToAdd) private view returns (uint256) {
+		if (totalCELO == 0) {
+			// 2^16 is chosen arbitrarily. since maximum amount of CELO is capped at 1BLN, we can afford to
+			// multiply it be 2^16 without running into any overflow issues. This also makes it clear that
+			// SavingsCELO and CELO don't have 1:1 relationship to avoid confusion down the line.
+			return celoToAdd * 65536;
+		}
+		return celoToAdd * totalSavingsCELO / totalCELO;
 	}
 
 	function verifyWithdrawArgs(
