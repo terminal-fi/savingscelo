@@ -12,7 +12,9 @@ contract SavingsCELO is ERC20 {
 	using SafeMath for uint256;
 
 	IERC20 public _GoldToken;
+	IAccounts public _Accounts;
 	ILockedGold public _LockedGold;
+	address public _owner;
 
 	struct PendingWithdrawal {
 		// The value of the pending withdrawal.
@@ -32,11 +34,28 @@ contract SavingsCELO is ERC20 {
 		address GoldToken,
 		address LockedGold
 	) ERC20("Savings CELO", "sCELO") public {
+		_owner = msg.sender;
 		_GoldToken = IERC20(GoldToken);
 		_LockedGold = ILockedGold(LockedGold);
+		_Accounts = IAccounts(Accounts);
 		require(
-			IAccounts(Accounts).createAccount(),
+			_Accounts.createAccount(),
 			"createAccount failed");
+	}
+
+	function changeOwner(address newOwner) external {
+		require(msg.sender == _owner, "only current owner can change the owner");
+		require(newOwner != address(0x0), "must provide valid new owner");
+		_owner = newOwner;
+	}
+
+	function authorizeVoteSigner(
+		address signer,
+		uint8 v,
+		bytes32 r,
+		bytes32 s) external {
+		require(msg.sender == _owner, "only current owner can authorize a new vote signer");
+		_Accounts.authorizeVoteSigner(signer, v, r, s);
 	}
 
 	function depositCELO(uint256 amount) external {
