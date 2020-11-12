@@ -4,10 +4,13 @@ import { PendingWithdrawal } from "@celo/contractkit/lib/wrappers/LockedGold"
 import BigNumber from "bignumber.js"
 import { SavingsCELOInstance } from "../types/truffle-contracts"
 
-export function pendingIndexGlobal(
+export async function withdrawIndexGlobal(
+	kit: ContractKit,
+	savingsCELO: SavingsCELOInstance,
 	pendings: {0: BN[], 1: BN[]},
-	pendingsGlobal: PendingWithdrawal[],
 	index: number) {
+	const lockedGold = await kit.contracts.getLockedGold()
+	const pendingsGlobal = await lockedGold.getPendingWithdrawals(savingsCELO.address)
 	const idx = pendingsGlobal.findIndex((p) => (
 		p.value.eq(pendings[0][index].toString()) &&
 		p.time.eq(pendings[1][index].toString())))

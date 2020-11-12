@@ -47,12 +47,16 @@ contract SavingsCELO is ERC20 {
 			"createAccount failed");
 	}
 
+	/// Changes owner of the contract that has authorizeVoteSigner privileges.
 	function changeOwner(address newOwner) external {
 		require(msg.sender == _owner, "only current owner can change the owner");
 		require(newOwner != address(0x0), "must provide valid new owner");
 		_owner = newOwner;
 	}
 
+	/// Authorizes new vote signer that can manage voting for all of contract's locked
+	/// CELO. {v, r, s} constitutes proof-of-key-possession signature of signer for this
+	/// contracts address.
 	function authorizeVoteSigner(
 		address signer,
 		uint8 v,
@@ -62,21 +66,36 @@ contract SavingsCELO is ERC20 {
 		_Accounts.authorizeVoteSigner(signer, v, r, s);
 	}
 
-	function depositCELO(uint256 amount) external {
+	/// Deposits CELO to the contract in exchange of SavingsCELO tokens. CELO tokens are transfered
+	/// using ERC20.transferFrom call, thus caller must increaseAllowance first to allow for the
+	/// transfer to go through.
+	function deposit(uint256 celoAmount) external {
 		uint256 totalCELO = totalSupplyCELO();
 		uint256 totalSavingsCELO = this.totalSupply();
 		require(
-			_GoldToken.transferFrom(msg.sender, address(this), amount),
+			_GoldToken.transferFrom(msg.sender, address(this), celoAmount),
 			"transfer of CELO failed");
-		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, amount);
+		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, celoAmount);
 		_mint(msg.sender, toMint);
 
 		uint256 toLock = _GoldToken.balanceOf(address(this));
-		assert(toLock >= amount);
+		assert(toLock >= celoAmount);
 		_LockedGold.lock.value(toLock)();
-		emit Deposited(msg.sender, amount, toMint);
+		emit Deposited(msg.sender, celoAmount, toMint);
 	}
 
+	/// Starts withdraw process for savingsAmount SavingsCELO tokens. Since only nonvoting CELO can be
+	/// unlocked, withdrawStart might have to call Election.revoke* calls to revoke currently cast votes.
+	/// To keep this call simple, maximum amount of CELO that can be unlocked in single call is:
+	/// `nonvoting locked CELO + total votes for last voted group`. This way, withdrawStart call will only
+	/// revoke votes for a single group at most, making it simpler overall.
+	///
+	/// lesser.../greater... parameters are needed to perform Election.revokePending and Election.revokeActive
+	/// calls. See Election contract for more details. lesser.../greater... arguments
+	/// are for last voted group by this contract, since revoking only happens for the last voted group.
+	///
+	/// Note that it is possible for this call to fail due to accidental race conditions if lesser.../greater...
+	/// parameters no longer match due to changes in overall voting ranking.
 	function withdrawStart(
 		uint256 savingsAmount,
 		address lesserAfterPendingRevoke,
@@ -87,6 +106,13 @@ contract SavingsCELO is ERC20 {
 		uint256 totalCELO = totalSupplyCELO();
 		uint256 totalSavingsCELO = this.totalSupply();
 		_burn(msg.sender, savingsAmount);
+		// If there is any unlocked CELO, lock it to make rest of the logic always
+		// consistent. There should never be unlocked CELO in the contract unless some
+		// user explicitly donates it.
+		uint256 unlocked = _GoldToken.balanceOf(address(this));
+		if (unlocked > 0) {
+			_LockedGold.lock.value(unlocked)();
+		}
 		// toUnlock formula comes from:
 		// (supply / totalCELO) === (supply - savingsAmount) / (totalCELO - toUnlock)
 		uint256 toUnlock = savingsAmount * totalCELO / totalSavingsCELO;
@@ -146,6 +172,9 @@ contract SavingsCELO is ERC20 {
 		}
 	}
 
+	/// Finishes withdraw process, transfering unlocked CELO back to the caller.
+	/// `index` is index of pending withdrawal to finish as returned by .pendingWithdrawals() call.
+	/// `indexGlobal` is index of matching pending withdrawal as returned by _LockedGold.getPendingWithdrawals() call.
 	function withdrawFinish(uint256 index, uint256 indexGlobal) external {
 		PendingWithdrawal[] storage pending = verifyWithdrawArgs(msg.sender, index, indexGlobal);
 		uint256 toWithdraw = pending[index].value;
@@ -157,6 +186,11 @@ contract SavingsCELO is ERC20 {
 		emit WithdrawFinished(msg.sender, toWithdraw);
 	}
 
+	/// Cancels withdraw process, re-locking CELO back in the contract and returning SavingsCELO tokens back
+	/// to the caller. At the time of re-locking, SavingsCELO can be more valuable compared to when .withdrawStart
+	/// was called. Thus caller might receive less SavingsCELO compared to what was supplied to .withdrawStart.
+	/// `index` is index of pending withdrawal to finish as returned by .pendingWithdrawals() call.
+	/// `indexGlobal` is index of matching pending withdrawal as returned by _LockedGold.getPendingWithdrawals() call.
 	function withdrawCancel(uint256 index, uint256 indexGlobal) external {
 		PendingWithdrawal[] storage pending = verifyWithdrawArgs(msg.sender, index, indexGlobal);
 		uint256 totalCELO = totalSupplyCELO();
@@ -169,6 +203,7 @@ contract SavingsCELO is ERC20 {
 		emit WithdrawCanceled(msg.sender, toRelock, toMint);
 	}
 
+	/// Returns (values[], timestamps[]) of all pending withdrawals for given address.
 	function pendingWithdrawals(address addr)
 		external
 		view
@@ -184,18 +219,20 @@ contract SavingsCELO is ERC20 {
 		return (values, timestamps);
 	}
 
-	function savingsToCELO(uint256 amount) external view returns (uint256) {
+	/// Returns amount of CELO that can be claimed for savingsAmount SavingsCELO tokens.
+	function savingsToCELO(uint256 savingsAmount) external view returns (uint256) {
 		uint256 totalSavingsCELO = this.totalSupply();
 		if (totalSavingsCELO == 0) {
 			return 0;
 		}
 		uint256 totalCELO = totalSupplyCELO();
-		return amount * totalCELO / totalSavingsCELO;
+		return savingsAmount * totalCELO / totalSavingsCELO;
 	}
-	function celoToSavings(uint256 amount) external view returns (uint256) {
+	/// Returns amount of SavingsCELO tokens that can be received for depositing celoAmount CELO tokens.
+	function celoToSavings(uint256 celoAmount) external view returns (uint256) {
 		uint256 totalSavingsCELO = this.totalSupply();
 		uint256 totalCELO = totalSupplyCELO();
-		return savingsToMint(totalSavingsCELO, totalCELO, amount);
+		return savingsToMint(totalSavingsCELO, totalCELO, celoAmount);
 	}
 
 	function totalSupplyCELO() internal view returns(uint256) {
@@ -210,7 +247,7 @@ contract SavingsCELO is ERC20 {
 		uint256 celoToAdd) private pure returns (uint256) {
 		if (totalSavingsCELO == 0 || totalCELO == 0) {
 			// 2^16 is chosen arbitrarily. since maximum amount of CELO is capped at 1BLN, we can afford to
-			// multiply it be 2^16 without running into any overflow issues. This also makes it clear that
+			// multiply it by 2^16 without running into any overflow issues. This also makes it clear that
 			// SavingsCELO and CELO don't have 1:1 relationship to avoid confusion down the line.
 			return celoToAdd * 65536;
 		}

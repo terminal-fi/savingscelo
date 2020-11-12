@@ -1,10 +1,8 @@
-import { ContractKit, newKit } from "@celo/contractkit"
+import { newKit } from "@celo/contractkit"
 import { addressToPublicKey } from '@celo/utils/lib/signatureUtils'
-import { PendingWithdrawal } from "@celo/contractkit/lib/wrappers/LockedGold";
 import BigNumber from "bignumber.js";
-import { increaseTime, mineToNextEpoch } from "celo-devchain"
-import { Deposited, SavingsCELOInstance, WithdrawFinished } from "../types/truffle-contracts/SavingsCELO";
-import { pendingIndexGlobal, withdrawStart } from "./helpers";
+import { mineToNextEpoch } from "celo-devchain"
+import { withdrawStart } from "./helpers";
 
 const SavingsCELO = artifacts.require("SavingsCELO");
 
@@ -79,7 +77,6 @@ contract('SavingsCELO', (accounts) => {
 
 	it(`withdraw pending and active votes`, async () => {
 		const goldToken = await kit.contracts.getGoldToken()
-		const lockedGold = await kit.contracts.getLockedGold()
 		const savingsCELO = await SavingsCELO.deployed()
 		const election = await kit.contracts.getElection()
 
@@ -87,7 +84,7 @@ contract('SavingsCELO', (accounts) => {
 		await tx.sendAndWaitForReceipt({from: owner} as any)
 
 		// Deposit 1000 CELO and vote for `vgroup`
-		await savingsCELO.depositCELO(
+		await savingsCELO.deposit(
 			new BigNumber(1000e18).toFixed(0),
 			{from: owner} as any)
 		kit.defaultAccount = signer
@@ -125,9 +122,15 @@ contract('SavingsCELO', (accounts) => {
 		activeVotes = await election.getActiveVotesForGroup(vgroup)
 		assert.isTrue(activeVotes.eq(500e18), `activeVotes: ${activeVotes}`)
 
-		// Withdraw 600 CELO, forcing to unlock nonvoting celo and revoke all pending votes, plus some of active votes.
+		// Withdraw 600 CELO, forcing to unlock nonvoting celo and revoke all pending votes,
+		// plus some of the active votes.
 		const toWithdraw600 = await savingsCELO.celoToSavings(new BigNumber(600e18).toFixed(0))
 		await withdrawStart(kit, savingsCELO, owner, toWithdraw600.toString())
+
+		totalVotes = await election.getTotalVotesForGroup(vgroup)
+		assert.isTrue(totalVotes.eq(400e18), `totalVotes: ${totalVotes}`)
+		activeVotes = await election.getActiveVotesForGroup(vgroup)
+		assert.isTrue(activeVotes.eq(400e18), `activeVotes: ${activeVotes}`)
 	})
 })
 
