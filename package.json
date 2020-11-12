@@ -1,22 +1,25 @@
 {
   "name": "savingscelo",
   "version": "1.0.0",
-  "description": "SavingsCELO",
+  "description": "SavingsCELO contracts and @celo/contractkit based SDK",
   "repository": {
     "url": "https://github.com/zviadm/savingscelo"
   },
-  "dependencies": {},
-  "devDependencies": {
+  "dependencies": {
     "@celo/contractkit": "^0.4.18",
+    "bignumber.js": "^9.0.1"
+  },
+  "devDependencies": {
     "@openzeppelin/contracts": "^3.2.0",
     "@typechain/truffle-v5": "^3.0.0",
     "@typechain/web3-v1": "^1.0.0",
-    "bignumber.js": "^9.0.1",
     "celo-devchain": "^1.0.10",
     "truffle-typings": "^1.0.8",
     "typechain": "^4.0.0",
     "typescript": "^4.0.5"
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "compile": "truffle compile && npx typechain --target=truffle-v5 'build/contracts/*.json'",
     "migrate": "npm run compile && npx tsc -b ./tsconfig.migrate.json && truffle migrate --reset",

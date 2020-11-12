@@ -2,7 +2,7 @@ import { newKit } from "@celo/contractkit"
 import { addressToPublicKey } from '@celo/utils/lib/signatureUtils'
 import BigNumber from "bignumber.js";
 import { mineToNextEpoch } from "celo-devchain"
-import SavingsKit from "../savingskit/savingskit";
+import { SavingsKit } from "../savingskit";
 
 const SavingsCELO = artifacts.require("SavingsCELO");
 

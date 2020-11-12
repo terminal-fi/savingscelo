@@ -1,7 +1,7 @@
 import { newKit } from "@celo/contractkit"
 import BigNumber from "bignumber.js";
 import { increaseTime, Provider } from "celo-devchain"
-import SavingsKit from "../savingskit/savingskit";
+import { SavingsKit } from "../savingskit";
 import { Deposited, WithdrawFinished } from "../../types/truffle-contracts/SavingsCELO";
 
 const SavingsCELO = artifacts.require("SavingsCELO");
@@ -82,9 +82,8 @@ contract('SavingsCELO', (accounts) => {
 		assert.isTrue(a0savings2.eqn(0))
 
 		const lockedGold = await kit.contracts.getLockedGold()
-		let pendings = await savingsCELO.pendingWithdrawals(a0)
-		assert.equal(pendings[0].length, 2)
-		assert.equal(pendings[1].length, 2)
+		let pendings = await savingsKit.pendingWithdrawals(a0)
+		assert.equal(pendings.length, 2)
 
 		try{
 			await (await savingsKit
@@ -98,14 +97,14 @@ contract('SavingsCELO', (accounts) => {
 			.withdrawFinish(pendings, 0))
 			.sendAndWaitForReceipt({from: a0} as any)
 
-		pendings = await savingsCELO.pendingWithdrawals(a0)
+		pendings = await savingsKit.pendingWithdrawals(a0)
 		await (await savingsKit
 			.withdrawCancel(pendings, 0))
 			.sendAndWaitForReceipt({from: a0} as any)
 
 		// Check to make sure there are no more pending withdrawals.
-		pendings = await savingsCELO.pendingWithdrawals(a0)
-		assert.equal(pendings[0].length, 0)
+		pendings = await savingsKit.pendingWithdrawals(a0)
+		assert.equal(pendings.length, 0)
 
 		const a0finalSavings = await savingsCELO.balanceOf(a0)
 		assert.isTrue(a0finalSavings.eq(toCancel))
@@ -168,11 +167,10 @@ contract('SavingsCELO', (accounts) => {
 			.sendAndWaitForReceipt({from: a0} as any)
 		await increaseTime(kit.web3.currentProvider as Provider, 3 * 24 * 3600 + 1)
 
-		const pendings = await savingsCELO.pendingWithdrawals(a0)
+		const pendings = await savingsKit.pendingWithdrawals(a0)
 		for (let i = 1; i <= 3; i++) {
-			const index = pendings[0].length - i
 			await (await savingsKit
-				.withdrawFinish(pendings, pendings[0].length - i))
+				.withdrawFinish(pendings, pendings.length - i))
 				.sendAndWaitForReceipt({from: a0} as any)
 		}
 
