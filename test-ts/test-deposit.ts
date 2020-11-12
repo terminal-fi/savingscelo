@@ -135,24 +135,33 @@ contract('SavingsCELO', (accounts) => {
 
 	it(`test withdrawing unlocked donation`, async () => {
 		const goldToken = await kit.contracts.getGoldToken()
+		const lockedGold = await kit.contracts.getLockedGold()
 		const savingsCELO = await SavingsCELO.deployed()
 
 		const a0savings = await savingsCELO.balanceOf(a0)
-		const toDonate = new BigNumber(100e18)
+		const toDonate = new BigNumber(103e18)
 		await goldToken
 			.transfer(savingsCELO.address, toDonate.toFixed(0))
 			.sendAndWaitForReceipt({from: a1} as any)
 
-		await withdrawStart(kit, savingsCELO, a0, a0savings.toString())
+		// Withdraw in 3 chunks just to make things messy.
+		await withdrawStart(kit, savingsCELO, a0, a0savings.divn(3).toString())
+		await withdrawStart(kit, savingsCELO, a0, a0savings.divn(7).toString())
+		const a0savingsLeft = await savingsCELO.balanceOf(a0)
+		await withdrawStart(kit, savingsCELO, a0, a0savingsLeft.toString())
 		await increaseTime(kit.web3.currentProvider as Provider, 3 * 24 * 3600 + 1)
 
 		const pendings = await savingsCELO.pendingWithdrawals(a0)
-		const index = pendings[0].length - 1
-		const indexGlobal = await withdrawIndexGlobal(kit, savingsCELO, pendings, index)
-		await savingsCELO.withdrawFinish(index, indexGlobal)
+		for (let i = 1; i <= 3; i++) {
+			const index = pendings[0].length - i
+			const indexGlobal = await withdrawIndexGlobal(kit, savingsCELO, pendings, index)
+			await savingsCELO.withdrawFinish(index, indexGlobal)
+		}
 
 		const contractCELO = await goldToken.balanceOf(savingsCELO.address)
 		assert.isTrue(contractCELO.eq(0))
+		const contractLockedCELO = await lockedGold.getAccountTotalLockedGold(savingsCELO.address)
+		assert.isTrue(contractLockedCELO.eq(0), `Locked CELO: ${contractLockedCELO}`)
 	})
 })
 
