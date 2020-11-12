@@ -25,7 +25,7 @@ export async function withdrawStart(
 	const lockedGold = await kit.contracts.getLockedGold()
 	const election = await kit.contracts.getElection()
 	const amt = new BigNumber(savingsAmt).toFixed(0)
-	const toUnlock = await savingsCELO.savingsCELOasCELO(amt)
+	const toUnlock = await savingsCELO.savingsToCELO(amt)
 
 	const nonvoting = await lockedGold.getAccountNonvotingLockedGold(savingsCELO.address)
 	const toRevoke = BigNumber.maximum(nonvoting.negated().plus(toUnlock.toString()), 0)

@@ -1,8 +1,7 @@
-import { ContractKit, newKit } from "@celo/contractkit"
-import { PendingWithdrawal } from "@celo/contractkit/lib/wrappers/LockedGold";
+import { newKit } from "@celo/contractkit"
 import BigNumber from "bignumber.js";
 import { increaseTime } from "celo-devchain"
-import { Deposited, SavingsCELOInstance, WithdrawFinished } from "../types/truffle-contracts/SavingsCELO";
+import { Deposited, WithdrawFinished } from "../types/truffle-contracts/SavingsCELO";
 import { pendingIndexGlobal, withdrawStart } from "./helpers";
 
 const SavingsCELO = artifacts.require("SavingsCELO");

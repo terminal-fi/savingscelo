@@ -184,13 +184,18 @@ contract SavingsCELO is ERC20 {
 		return (values, timestamps);
 	}
 
-	function savingsCELOasCELO(uint256 amount) external view returns (uint256) {
+	function savingsToCELO(uint256 amount) external view returns (uint256) {
 		uint256 totalSavingsCELO = this.totalSupply();
 		if (totalSavingsCELO == 0) {
 			return 0;
 		}
 		uint256 totalCELO = totalSupplyCELO();
 		return amount * totalCELO / totalSavingsCELO;
+	}
+	function celoToSavings(uint256 amount) external view returns (uint256) {
+		uint256 totalSavingsCELO = this.totalSupply();
+		uint256 totalCELO = totalSupplyCELO();
+		return savingsToMint(totalSavingsCELO, totalCELO, amount);
 	}
 
 	function totalSupplyCELO() internal view returns(uint256) {
@@ -203,7 +208,7 @@ contract SavingsCELO is ERC20 {
 		uint256 totalSavingsCELO,
 		uint256 totalCELO,
 		uint256 celoToAdd) private pure returns (uint256) {
-		if (totalCELO == 0) {
+		if (totalSavingsCELO == 0 || totalCELO == 0) {
 			// 2^16 is chosen arbitrarily. since maximum amount of CELO is capped at 1BLN, we can afford to
 			// multiply it be 2^16 without running into any overflow issues. This also makes it clear that
 			// SavingsCELO and CELO don't have 1:1 relationship to avoid confusion down the line.

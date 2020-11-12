@@ -77,7 +77,7 @@ contract('SavingsCELO', (accounts) => {
 			.sendAndWaitForReceipt({from: vgroup} as any)
 	})
 
-	it(`deposit celo and vote`, async () => {
+	it(`withdraw pending and active votes`, async () => {
 		const goldToken = await kit.contracts.getGoldToken()
 		const lockedGold = await kit.contracts.getLockedGold()
 		const savingsCELO = await SavingsCELO.deployed()
@@ -86,21 +86,49 @@ contract('SavingsCELO', (accounts) => {
 		let tx = await goldToken.increaseAllowance(savingsCELO.address, 1e35.toFixed(0))
 		await tx.sendAndWaitForReceipt({from: owner} as any)
 
-		let res = await savingsCELO.depositCELO(
+		// Deposit 1000 CELO and vote for `vgroup`
+		await savingsCELO.depositCELO(
 			new BigNumber(1000e18).toFixed(0),
 			{from: owner} as any)
-		const eventDeposited = res.logs.pop() as Truffle.TransactionLog<Deposited>
-		const ownerSavings = eventDeposited.args.savingsAmount
 		kit.defaultAccount = signer
-		tx = await election.vote(vgroup, new BigNumber(1000e18))
-		await tx.sendAndWaitForReceipt({from: signer} as any)
+		await (await election
+			.vote(vgroup, new BigNumber(1000e18)))
+			.sendAndWaitForReceipt({from: signer} as any)
 
+		// Withdraw 500 CELO, forcing revoking of half of the votes.
 		let totalVotes = await election.getTotalVotesForGroup(vgroup)
 		assert.isTrue(totalVotes.eq(1000e18))
-		await withdrawStart(kit, savingsCELO, owner, ownerSavings.divn(2).toString())
+		const toWithdraw500 = await savingsCELO.celoToSavings(new BigNumber(500e18).toFixed(0))
+		await withdrawStart(kit, savingsCELO, owner, toWithdraw500.toString())
 
 		totalVotes = await election.getTotalVotesForGroup(vgroup)
 		assert.isTrue(totalVotes.eq(500e18))
+		let activeVotes = await election.getActiveVotesForGroup(vgroup)
+		assert.isTrue(activeVotes.eq(0))
+
+		// await increaseTime(kit.web3.currentProvider as any, 24 * 3600 + 1)
+		// TODO(zviad): Figure out how to switch Epoch.
+		// const activateTXs = await election.activate(savingsCELO.address)
+		// for (const tx of activateTXs) {
+		// 	await tx.sendAndWaitForReceipt({from: signer} as any)
+		// }
+		// activeVotes = await election.getActiveVotesForGroup(vgroup)
+		// assert.isTrue(activeVotes.eq(500e18), `activeVotes: ${activeVotes}`)
+
+		// // Cancel withdraw of 500 CELO, forcing to re-lock and re-vote.
+		// await savingsCELO.withdrawCancel(0, 0, {from: owner})
+		// await (await election
+		// 	.vote(vgroup, new BigNumber(300e18)))
+		// 	.sendAndWaitForReceipt({from: signer} as any)
+
+		// totalVotes = await election.getTotalVotesForGroup(vgroup)
+		// assert.isTrue(totalVotes.eq(800e18), `totalVotes: ${totalVotes}`)
+		// activeVotes = await election.getActiveVotesForGroup(vgroup)
+		// assert.isTrue(activeVotes.eq(500e18), `activeVotes: ${activeVotes}`)
+
+		// // Withdraw 600 CELO, forcing to unlock nonvoting celo and revoke all pending votes, plus some of active votes.
+		// const toWithdraw600 = await savingsCELO.celoToSavings(new BigNumber(600e18).toFixed(0))
+		// await withdrawStart(kit, savingsCELO, owner, toWithdraw600.toString())
 	})
 })
 
