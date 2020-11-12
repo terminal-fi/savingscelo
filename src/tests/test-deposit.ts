@@ -1,8 +1,8 @@
 import { newKit } from "@celo/contractkit"
 import BigNumber from "bignumber.js";
 import { increaseTime, Provider } from "celo-devchain"
-import { Deposited, WithdrawFinished } from "../types/truffle-contracts/SavingsCELO";
-import { withdrawIndexGlobal, withdrawStart } from "./helpers";
+import SavingsKit from "../savingskit/savingskit";
+import { Deposited, WithdrawFinished } from "../../types/truffle-contracts/SavingsCELO";
 
 const SavingsCELO = artifacts.require("SavingsCELO");
 
@@ -47,24 +47,36 @@ contract('SavingsCELO', (accounts) => {
 
 	it(`invalid withdraws`, async () => {
 		const savingsCELO = await SavingsCELO.deployed()
+		const savingsKit = new SavingsKit(kit, savingsCELO.address)
+
 		const toWithdraw = await savingsCELO.celoToSavings(toLock.toFixed(0))
 		try{
-			await withdrawStart(kit, savingsCELO, a1, toWithdraw.toString())
+			await (await savingsKit
+				.withdrawStart(toWithdraw.toString()))
+				.sendAndWaitForReceipt({from: a1} as any)
 			assert.fail("withdraw from `a1` must have failed!")
 		} catch {}
 		try{
-			await withdrawStart(kit, savingsCELO, a0, toWithdraw.addn(1e18).toString())
+			await (await savingsKit
+				.withdrawStart(toWithdraw.addn(1e18).toString()))
+				.sendAndWaitForReceipt({from: a0} as any)
 			assert.fail("withdraw of too much CELO must have failed!")
 		} catch {}
 	})
 
 	it(`simiple withdraw and withdraw cancel`, async () => {
 		const savingsCELO = await SavingsCELO.deployed()
+		const savingsKit = new SavingsKit(kit, savingsCELO.address)
+
 		const a0savings = await savingsCELO.balanceOf(a0)
 		const toWithdraw = await savingsCELO.celoToSavings(toLock.div(2).toFixed(0))
 		const toCancel = a0savings.sub(toWithdraw)
-		await withdrawStart(kit, savingsCELO, a0, toWithdraw.toString())
-		await withdrawStart(kit, savingsCELO, a0, toCancel.toString())
+		await (await savingsKit
+			.withdrawStart(toWithdraw.toString()))
+			.sendAndWaitForReceipt({from: a0} as any)
+		await (await savingsKit
+			.withdrawStart(toCancel.toString()))
+			.sendAndWaitForReceipt({from: a0} as any)
 
 		const a0savings2 = await savingsCELO.balanceOf(a0)
 		assert.isTrue(a0savings2.eqn(0))
@@ -73,25 +85,23 @@ contract('SavingsCELO', (accounts) => {
 		let pendings = await savingsCELO.pendingWithdrawals(a0)
 		assert.equal(pendings[0].length, 2)
 		assert.equal(pendings[1].length, 2)
-		let index = 0
-		let idxGlobal = await withdrawIndexGlobal(kit, savingsCELO, pendings, index)
 
 		try{
-			await savingsCELO.withdrawFinish(index, idxGlobal)
+			await (await savingsKit
+				.withdrawFinish(pendings, 0))
+				.sendAndWaitForReceipt({from: a0} as any)
 			assert.fail("withdraw must fail since not enough time has passed!")
 		} catch {}
 
 		await increaseTime(kit.web3.currentProvider as Provider, 3 * 24 * 3600 + 1)
-		let res = await savingsCELO.withdrawFinish(index, idxGlobal)
-		const eventWFinished = res.logs.pop() as Truffle.TransactionLog<WithdrawFinished>
-		assert.equal(eventWFinished.event, "WithdrawFinished")
-		assert.equal(eventWFinished.args.from, a0)
-		assert.isTrue(eventWFinished.args.celoAmount.eq(pendings[0][0]))
+		await (await savingsKit
+			.withdrawFinish(pendings, 0))
+			.sendAndWaitForReceipt({from: a0} as any)
 
 		pendings = await savingsCELO.pendingWithdrawals(a0)
-		index = 0
-		idxGlobal = await withdrawIndexGlobal(kit, savingsCELO, pendings, index)
-		await savingsCELO.withdrawCancel(index, idxGlobal)
+		await (await savingsKit
+			.withdrawCancel(pendings, 0))
+			.sendAndWaitForReceipt({from: a0} as any)
 
 		// Check to make sure there are no more pending withdrawals.
 		pendings = await savingsCELO.pendingWithdrawals(a0)
@@ -137,6 +147,7 @@ contract('SavingsCELO', (accounts) => {
 		const goldToken = await kit.contracts.getGoldToken()
 		const lockedGold = await kit.contracts.getLockedGold()
 		const savingsCELO = await SavingsCELO.deployed()
+		const savingsKit = new SavingsKit(kit, savingsCELO.address)
 
 		const a0savings = await savingsCELO.balanceOf(a0)
 		const toDonate = new BigNumber(103e18)
@@ -145,17 +156,24 @@ contract('SavingsCELO', (accounts) => {
 			.sendAndWaitForReceipt({from: a1} as any)
 
 		// Withdraw in 3 chunks just to make things messy.
-		await withdrawStart(kit, savingsCELO, a0, a0savings.divn(3).toString())
-		await withdrawStart(kit, savingsCELO, a0, a0savings.divn(7).toString())
+		await (await savingsKit
+			.withdrawStart(a0savings.divn(3).toString()))
+			.sendAndWaitForReceipt({from: a0} as any)
+		await (await savingsKit
+			.withdrawStart(a0savings.divn(7).toString()))
+			.sendAndWaitForReceipt({from: a0} as any)
 		const a0savingsLeft = await savingsCELO.balanceOf(a0)
-		await withdrawStart(kit, savingsCELO, a0, a0savingsLeft.toString())
+		await (await savingsKit
+			.withdrawStart(a0savingsLeft.toString()))
+			.sendAndWaitForReceipt({from: a0} as any)
 		await increaseTime(kit.web3.currentProvider as Provider, 3 * 24 * 3600 + 1)
 
 		const pendings = await savingsCELO.pendingWithdrawals(a0)
 		for (let i = 1; i <= 3; i++) {
 			const index = pendings[0].length - i
-			const indexGlobal = await withdrawIndexGlobal(kit, savingsCELO, pendings, index)
-			await savingsCELO.withdrawFinish(index, indexGlobal)
+			await (await savingsKit
+				.withdrawFinish(pendings, pendings[0].length - i))
+				.sendAndWaitForReceipt({from: a0} as any)
 		}
 
 		const contractCELO = await goldToken.balanceOf(savingsCELO.address)

@@ -2,7 +2,7 @@ import { newKit } from "@celo/contractkit"
 import { addressToPublicKey } from '@celo/utils/lib/signatureUtils'
 import BigNumber from "bignumber.js";
 import { mineToNextEpoch } from "celo-devchain"
-import { withdrawStart } from "./helpers";
+import SavingsKit from "../savingskit/savingskit";
 
 const SavingsCELO = artifacts.require("SavingsCELO");
 
@@ -77,8 +77,9 @@ contract('SavingsCELO', (accounts) => {
 
 	it(`withdraw pending and active votes`, async () => {
 		const goldToken = await kit.contracts.getGoldToken()
-		const savingsCELO = await SavingsCELO.deployed()
 		const election = await kit.contracts.getElection()
+		const savingsCELO = await SavingsCELO.deployed()
+		const savingsKit = new SavingsKit(kit, savingsCELO.address)
 
 		let tx = await goldToken.increaseAllowance(savingsCELO.address, 1e35.toFixed(0))
 		await tx.sendAndWaitForReceipt({from: owner} as any)
@@ -96,7 +97,9 @@ contract('SavingsCELO', (accounts) => {
 		let totalVotes = await election.getTotalVotesForGroup(vgroup)
 		assert.isTrue(totalVotes.eq(1000e18))
 		const toWithdraw500 = await savingsCELO.celoToSavings(new BigNumber(500e18).toFixed(0))
-		await withdrawStart(kit, savingsCELO, owner, toWithdraw500.toString())
+		await (await savingsKit
+			.withdrawStart(toWithdraw500.toString()))
+			.sendAndWaitForReceipt({from: owner} as any)
 
 		totalVotes = await election.getTotalVotesForGroup(vgroup)
 		assert.isTrue(totalVotes.eq(500e18))
@@ -125,7 +128,9 @@ contract('SavingsCELO', (accounts) => {
 		// Withdraw 600 CELO, forcing to unlock nonvoting celo and revoke all pending votes,
 		// plus some of the active votes.
 		const toWithdraw600 = await savingsCELO.celoToSavings(new BigNumber(600e18).toFixed(0))
-		await withdrawStart(kit, savingsCELO, owner, toWithdraw600.toString())
+		await (await savingsKit
+			.withdrawStart(toWithdraw600.toString()))
+			.sendAndWaitForReceipt({from: owner} as any)
 
 		totalVotes = await election.getTotalVotesForGroup(vgroup)
 		assert.isTrue(totalVotes.eq(400e18), `totalVotes: ${totalVotes}`)

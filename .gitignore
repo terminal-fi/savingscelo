@@ -1,5 +1,4 @@
 build/
-migrations/
+dist/
 node_modules/
-test/
 types/
