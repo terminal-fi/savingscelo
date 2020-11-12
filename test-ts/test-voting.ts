@@ -2,7 +2,7 @@ import { ContractKit, newKit } from "@celo/contractkit"
 import { addressToPublicKey } from '@celo/utils/lib/signatureUtils'
 import { PendingWithdrawal } from "@celo/contractkit/lib/wrappers/LockedGold";
 import BigNumber from "bignumber.js";
-import { increaseTime } from "celo-devchain"
+import { increaseTime, mineToNextEpoch } from "celo-devchain"
 import { Deposited, SavingsCELOInstance, WithdrawFinished } from "../types/truffle-contracts/SavingsCELO";
 import { pendingIndexGlobal, withdrawStart } from "./helpers";
 
@@ -106,29 +106,28 @@ contract('SavingsCELO', (accounts) => {
 		let activeVotes = await election.getActiveVotesForGroup(vgroup)
 		assert.isTrue(activeVotes.eq(0))
 
-		// await increaseTime(kit.web3.currentProvider as any, 24 * 3600 + 1)
-		// TODO(zviad): Figure out how to switch Epoch.
-		// const activateTXs = await election.activate(savingsCELO.address)
-		// for (const tx of activateTXs) {
-		// 	await tx.sendAndWaitForReceipt({from: signer} as any)
-		// }
-		// activeVotes = await election.getActiveVotesForGroup(vgroup)
-		// assert.isTrue(activeVotes.eq(500e18), `activeVotes: ${activeVotes}`)
+		await mineToNextEpoch(kit)
+		const activateTXs = await election.activate(savingsCELO.address)
+		for (const tx of activateTXs) {
+			await tx.sendAndWaitForReceipt({from: signer} as any)
+		}
+		activeVotes = await election.getActiveVotesForGroup(vgroup)
+		assert.isTrue(activeVotes.eq(500e18), `activeVotes: ${activeVotes}`)
 
-		// // Cancel withdraw of 500 CELO, forcing to re-lock and re-vote.
-		// await savingsCELO.withdrawCancel(0, 0, {from: owner})
-		// await (await election
-		// 	.vote(vgroup, new BigNumber(300e18)))
-		// 	.sendAndWaitForReceipt({from: signer} as any)
+		// Cancel withdraw of 500 CELO, forcing to re-lock and re-vote.
+		await savingsCELO.withdrawCancel(0, 0, {from: owner})
+		await (await election
+			.vote(vgroup, new BigNumber(300e18)))
+			.sendAndWaitForReceipt({from: signer} as any)
 
-		// totalVotes = await election.getTotalVotesForGroup(vgroup)
-		// assert.isTrue(totalVotes.eq(800e18), `totalVotes: ${totalVotes}`)
-		// activeVotes = await election.getActiveVotesForGroup(vgroup)
-		// assert.isTrue(activeVotes.eq(500e18), `activeVotes: ${activeVotes}`)
+		totalVotes = await election.getTotalVotesForGroup(vgroup)
+		assert.isTrue(totalVotes.eq(800e18), `totalVotes: ${totalVotes}`)
+		activeVotes = await election.getActiveVotesForGroup(vgroup)
+		assert.isTrue(activeVotes.eq(500e18), `activeVotes: ${activeVotes}`)
 
-		// // Withdraw 600 CELO, forcing to unlock nonvoting celo and revoke all pending votes, plus some of active votes.
-		// const toWithdraw600 = await savingsCELO.celoToSavings(new BigNumber(600e18).toFixed(0))
-		// await withdrawStart(kit, savingsCELO, owner, toWithdraw600.toString())
+		// Withdraw 600 CELO, forcing to unlock nonvoting celo and revoke all pending votes, plus some of active votes.
+		const toWithdraw600 = await savingsCELO.celoToSavings(new BigNumber(600e18).toFixed(0))
+		await withdrawStart(kit, savingsCELO, owner, toWithdraw600.toString())
 	})
 })
 

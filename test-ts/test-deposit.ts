@@ -1,6 +1,6 @@
 import { newKit } from "@celo/contractkit"
 import BigNumber from "bignumber.js";
-import { increaseTime } from "celo-devchain"
+import { increaseTime, Provider } from "celo-devchain"
 import { Deposited, WithdrawFinished } from "../types/truffle-contracts/SavingsCELO";
 import { pendingIndexGlobal, withdrawStart } from "./helpers";
 
@@ -60,7 +60,7 @@ contract('SavingsCELO', (accounts) => {
 			await savingsCELO.withdrawFinish(index, idxGlobal)
 			assert.fail("withdraw must fail with unlock time passing!")
 		} catch {}
-		await increaseTime(kit.web3.currentProvider as any, 3 * 24 * 3600)
+		await increaseTime(kit.web3.currentProvider as Provider, 3 * 24 * 3600)
 		res = await savingsCELO.withdrawFinish(index, idxGlobal)
 		const eventWFinished = res.logs.pop() as Truffle.TransactionLog<WithdrawFinished>
 		assert.equal(eventWFinished.event, "WithdrawFinished")
