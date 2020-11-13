@@ -1,8 +1,9 @@
+import { toWei } from "web3-utils"
 import { newKit } from "@celo/contractkit"
 import { addressToPublicKey } from '@celo/utils/lib/signatureUtils'
 import BigNumber from "bignumber.js";
 import { mineToNextEpoch } from "celo-devchain"
-import { SavingsKit } from "../savingskit";
+import { SavingsKit } from "../savingskit"
 
 const SavingsCELO = artifacts.require("SavingsCELO");
 
@@ -12,17 +13,36 @@ after(() => {
 })
 contract('SavingsCELO', (accounts) => {
 	const owner = accounts[0]
+	let locker: string
 	let signer: string
 	let vgroup: string
+	let validator0: string
+
+	it(`create accounts`, async () => {
+		const goldToken = await kit.contracts.getGoldToken()
+		locker = await web3.eth.personal.newAccount("")
+		signer = await web3.eth.personal.newAccount("")
+		vgroup = await web3.eth.personal.newAccount("")
+		validator0 = await web3.eth.personal.newAccount("")
+		for (const account of [locker, signer, vgroup, validator0]) {
+			await web3.eth.personal.unlockAccount(account, "", 0)
+			await goldToken
+				.transfer(account, toWei('1', 'ether'))
+				.sendAndWaitForReceipt({from: owner} as any)
+		}
+
+		await goldToken
+			.transfer(locker, toWei('1000', 'ether'))
+			.sendAndWaitForReceipt({from: owner} as any)
+		await goldToken
+			.transfer(vgroup, toWei('10000', 'ether'))
+			.sendAndWaitForReceipt({from: owner} as any)
+		await goldToken
+			.transfer(validator0, toWei('10000', 'ether'))
+			.sendAndWaitForReceipt({from: owner} as any)
+	})
 
 	it(`authorize vote signner`, async () => {
-		const goldToken = await kit.contracts.getGoldToken()
-		signer = await web3.eth.personal.newAccount("")
-		await web3.eth.personal.unlockAccount(signer, "", 0)
-		await goldToken
-			.transfer(signer, 1e18.toFixed(0))
-			.sendAndWaitForReceipt({from: owner} as any)
-
 		const savingsCELO = await SavingsCELO.deployed()
 		const accountsC = await kit.contracts.getAccounts()
 		const proofOfPoss = await accountsC.generateProofOfKeyPossession(savingsCELO.address, signer)
@@ -35,15 +55,8 @@ contract('SavingsCELO', (accounts) => {
 		const accountsC = await kit.contracts.getAccounts()
 		const lockedGold = await kit.contracts.getLockedGold()
 		const validator = await kit.contracts.getValidators()
-		const goldToken = await kit.contracts.getGoldToken()
 
-		vgroup = await web3.eth.personal.newAccount("")
-		const validator0 = await web3.eth.personal.newAccount("")
 		for (const addr of [vgroup, validator0]) {
-			await web3.eth.personal.unlockAccount(addr, "", 0)
-			await goldToken
-				.transfer(addr, new BigNumber(10001e18).toFixed(0))
-				.sendAndWaitForReceipt({from: owner} as any)
 			await accountsC
 				.createAccount()
 				.sendAndWaitForReceipt({from: addr} as any)
@@ -51,7 +64,7 @@ contract('SavingsCELO', (accounts) => {
 				.lock()
 				.sendAndWaitForReceipt({
 					from: addr,
-					value: new BigNumber(10000e18).toFixed(0)} as any)
+					value: toWei('10000.1', 'ether')} as any)
 		}
 
 		await (await validator
@@ -85,24 +98,22 @@ contract('SavingsCELO', (accounts) => {
 		await tx.sendAndWaitForReceipt({from: owner} as any)
 
 		// Deposit 1000 CELO and vote for `vgroup`
-		await savingsCELO.deposit(
-			new BigNumber(1000e18).toFixed(0),
-			{from: owner} as any)
+		await savingsCELO.deposit(toWei('1000', 'ether'), {from: owner})
 		kit.defaultAccount = signer
 		await (await election
-			.vote(vgroup, new BigNumber(1000e18)))
+			.vote(vgroup, new BigNumber(toWei('1000', 'ether'))))
 			.sendAndWaitForReceipt({from: signer} as any)
 
 		// Withdraw 500 CELO, forcing revoking of half of the votes.
 		let totalVotes = await election.getTotalVotesForGroup(vgroup)
-		assert.isTrue(totalVotes.eq(1000e18))
-		const toWithdraw500 = await savingsCELO.celoToSavings(new BigNumber(500e18).toFixed(0))
+		assert.isTrue(totalVotes.eq(toWei('1000', 'ether')))
+		const toWithdraw500 = await savingsCELO.celoToSavings(toWei('500', 'ether'))
 		await (await savingsKit
 			.withdrawStart(toWithdraw500.toString()))
 			.sendAndWaitForReceipt({from: owner} as any)
 
 		totalVotes = await election.getTotalVotesForGroup(vgroup)
-		assert.isTrue(totalVotes.eq(500e18))
+		assert.isTrue(totalVotes.eq(toWei('500', 'ether')))
 		let activeVotes = await election.getActiveVotesForGroup(vgroup)
 		assert.isTrue(activeVotes.eq(0))
 
@@ -112,30 +123,30 @@ contract('SavingsCELO', (accounts) => {
 			await tx.sendAndWaitForReceipt({from: signer} as any)
 		}
 		activeVotes = await election.getActiveVotesForGroup(vgroup)
-		assert.isTrue(activeVotes.eq(500e18), `activeVotes: ${activeVotes}`)
+		assert.isTrue(activeVotes.eq(toWei('500', 'ether')), `activeVotes: ${activeVotes}`)
 
 		// Cancel withdraw of 500 CELO, forcing to re-lock and re-vote.
 		await savingsCELO.withdrawCancel(0, 0, {from: owner})
 		await (await election
-			.vote(vgroup, new BigNumber(300e18)))
+			.vote(vgroup, new BigNumber(toWei('300', 'ether'))))
 			.sendAndWaitForReceipt({from: signer} as any)
 
 		totalVotes = await election.getTotalVotesForGroup(vgroup)
-		assert.isTrue(totalVotes.eq(800e18), `totalVotes: ${totalVotes}`)
+		assert.isTrue(totalVotes.eq(toWei('800', 'ether')), `totalVotes: ${totalVotes}`)
 		activeVotes = await election.getActiveVotesForGroup(vgroup)
-		assert.isTrue(activeVotes.eq(500e18), `activeVotes: ${activeVotes}`)
+		assert.isTrue(activeVotes.eq(toWei('500', 'ether')), `activeVotes: ${activeVotes}`)
 
 		// Withdraw 600 CELO, forcing to unlock nonvoting celo and revoke all pending votes,
 		// plus some of the active votes.
-		const toWithdraw600 = await savingsCELO.celoToSavings(new BigNumber(600e18).toFixed(0))
+		const toWithdraw600 = await savingsCELO.celoToSavings(toWei('600', 'ether'))
 		await (await savingsKit
 			.withdrawStart(toWithdraw600.toString()))
 			.sendAndWaitForReceipt({from: owner} as any)
 
 		totalVotes = await election.getTotalVotesForGroup(vgroup)
-		assert.isTrue(totalVotes.eq(400e18), `totalVotes: ${totalVotes}`)
+		assert.isTrue(totalVotes.eq(toWei('400', 'ether')), `totalVotes: ${totalVotes}`)
 		activeVotes = await election.getActiveVotesForGroup(vgroup)
-		assert.isTrue(activeVotes.eq(400e18), `activeVotes: ${activeVotes}`)
+		assert.isTrue(activeVotes.eq(toWei('400', 'ether')), `activeVotes: ${activeVotes}`)
 	})
 })
 

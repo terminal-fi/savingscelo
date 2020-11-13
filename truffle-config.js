@@ -5,9 +5,7 @@
 
 module.exports = {
   migrations_directory: "./build/migrations",
-  mocha: {
-    bail: true,
-  },
+  mocha: {},
 
   networks: {
     development: {

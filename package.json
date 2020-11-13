@@ -25,7 +25,7 @@
     "compile": "truffle compile && npx typechain --target=truffle-v5 'build/contracts/*.json'",
     "migrate": "npm run compile && npx tsc -b ./tsconfig.migrate.json && truffle migrate --reset",
     "test": "./testall.sh",
-    "testone": "npx tsc -b ./tsconfig.json && truffle test",
+    "testone": "npx tsc -b ./tsconfig.json && truffle test --bail",
     "ganache": "npx celo-devchain --port 7545 --core v1"
   },
   "author": "Zviad Metreveli",

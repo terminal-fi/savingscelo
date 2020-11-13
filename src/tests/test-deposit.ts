@@ -1,3 +1,4 @@
+import { toWei } from "web3-utils"
 import { newKit } from "@celo/contractkit"
 import BigNumber from "bignumber.js";
 import { increaseTime, Provider } from "celo-devchain"
@@ -11,35 +12,54 @@ after(() => {
 	kit.stop()
 })
 contract('SavingsCELO', (accounts) => {
-	const a0 = accounts[0]
-	const a1 = accounts[1]
-	const toLock = new BigNumber(10e18)
+	const owner = accounts[0]
+	let a0: string
+	let a1: string
+	const toLock = toWei('10', 'ether')
+	const toDonate1 = toWei('100', 'ether')
+	const toDonate2 = toWei('110', 'ether')
+
+	it(`create accounts`, async () => {
+		const goldToken = await kit.contracts.getGoldToken()
+		a0 = await web3.eth.personal.newAccount("")
+		a1 = await web3.eth.personal.newAccount("")
+		for (const account of [a0, a1]) {
+			await web3.eth.personal.unlockAccount(account, "", 0)
+			await goldToken
+				.transfer(account, toWei('1', 'ether'))
+				.sendAndWaitForReceipt({from: owner} as any)
+		}
+		await goldToken
+			.transfer(a0, toLock)
+			.sendAndWaitForReceipt({from: owner} as any)
+		await goldToken
+			.transfer(a1, new BigNumber(toDonate1).plus(toDonate2).toFixed(0))
+			.sendAndWaitForReceipt({from: owner} as any)
+	})
 
 	it(`simple deposit`, async () => {
 		const goldToken = await kit.contracts.getGoldToken()
 		const lockedGold = await kit.contracts.getLockedGold()
 		const savingsCELO = await SavingsCELO.deployed()
-		// infinite approval for sCELO for `a0` account.
-		await goldToken
-			.increaseAllowance(savingsCELO.address, 1e35.toFixed(0))
-			.sendAndWaitForReceipt({from: a0} as any)
 
-		const a0startBalance = await goldToken.balanceOf(a0)
-		let res = await savingsCELO.deposit(toLock.toFixed(0), {from: a0})
+		await goldToken
+			.increaseAllowance(savingsCELO.address, toLock)
+			.sendAndWaitForReceipt({from: a0} as any)
+		let res = await savingsCELO.deposit(toLock, {from: a0})
 		const eventDeposited = res.logs.pop() as Truffle.TransactionLog<Deposited>
 		assert.equal(eventDeposited.event, "Deposited")
 		assert.equal(eventDeposited.args.from, a0)
-		assert.isTrue(toLock.eq(eventDeposited.args.celoAmount.toString()))
+		assert.equal(eventDeposited.args.celoAmount.toString(), toLock)
 
 		let a0savings = await savingsCELO.balanceOf(a0)
 		assert.isTrue(a0savings.eq(eventDeposited.args.savingsAmount))
 		assert.isTrue(a0savings.gtn(0))
 
 		const a0deposit = await savingsCELO.savingsToCELO(a0savings)
-		assert.isTrue(toLock.eq(a0deposit.toString()))
+		assert.equal(a0deposit.toString(), toLock)
 
-		const a0finalBalance = await goldToken.balanceOf(a0)
-		assert.closeTo(a0startBalance.minus(a0finalBalance).minus(toLock).toNumber(), 0.0, 0.01e18) // Delta due to Gas costs.
+		const balanceA0 = await goldToken.balanceOf(a0)
+		assert.isTrue(balanceA0.lt(toWei('1', 'ether')))
 
 		const contractCELO = await lockedGold.getAccountTotalLockedGold(savingsCELO.address)
 		assert.isTrue(contractCELO.eq(toLock))
@@ -49,7 +69,7 @@ contract('SavingsCELO', (accounts) => {
 		const savingsCELO = await SavingsCELO.deployed()
 		const savingsKit = new SavingsKit(kit, savingsCELO.address)
 
-		const toWithdraw = await savingsCELO.celoToSavings(toLock.toFixed(0))
+		const toWithdraw = await savingsCELO.celoToSavings(toLock)
 		try{
 			await (await savingsKit
 				.withdrawStart(toWithdraw.toString()))
@@ -69,7 +89,7 @@ contract('SavingsCELO', (accounts) => {
 		const savingsKit = new SavingsKit(kit, savingsCELO.address)
 
 		const a0savings = await savingsCELO.balanceOf(a0)
-		const toWithdraw = await savingsCELO.celoToSavings(toLock.div(2).toFixed(0))
+		const toWithdraw = await savingsCELO.celoToSavings(toWei('5', 'ether'))
 		const toCancel = a0savings.sub(toWithdraw)
 		await (await savingsKit
 			.withdrawStart(toWithdraw.toString()))
@@ -111,7 +131,7 @@ contract('SavingsCELO', (accounts) => {
 		const finalTotalSupply = await savingsCELO.totalSupply()
 		assert.isTrue(finalTotalSupply.eq(toCancel))
 		const finalLockedCELO = await lockedGold.getAccountTotalLockedGold(savingsCELO.address)
-		assert.isTrue(finalLockedCELO.eq(toLock.div(2)))
+		assert.isTrue(finalLockedCELO.eq(toWei('5', 'ether')))
 	})
 
 	it(`test celo donations`, async () => {
@@ -120,18 +140,17 @@ contract('SavingsCELO', (accounts) => {
 		const savingsCELO = await SavingsCELO.deployed()
 
 		const contractCELO = await lockedGold.getAccountTotalLockedGold(savingsCELO.address)
-		const savingsToCelo = await savingsCELO.savingsToCELO(new BigNumber(1e18).toFixed(0))
+		const savingsToCelo = await savingsCELO.savingsToCELO(toWei('1', 'ether'))
 
 		// Donate 100 CELO
-		const toDonate = new BigNumber(100e18)
 		await goldToken
-			.transfer(savingsCELO.address, toDonate.toFixed(0))
+			.transfer(savingsCELO.address, toDonate1)
 			.sendAndWaitForReceipt({from: a1} as any)
 
-		const savingsToCELO_2 = await savingsCELO.savingsToCELO(new BigNumber(1e18).toFixed(0))
+		const savingsToCELO_2 = await savingsCELO.savingsToCELO(toWei('1', 'ether'))
 		assert.closeTo(
 			savingsToCELO_2.div(savingsToCelo).toNumber(),
-			contractCELO.plus(toDonate).div(contractCELO).toNumber(),
+			contractCELO.plus(toDonate1).div(contractCELO).toNumber(),
 			0.001)
 
 		const contractCELO_2 = await lockedGold.getAccountTotalLockedGold(savingsCELO.address)
@@ -139,7 +158,7 @@ contract('SavingsCELO', (accounts) => {
 		// Make sure 0 deposit works to finish the donation.
 		await savingsCELO.deposit(0, {from: a1})
 		const contractCELO_3 = await lockedGold.getAccountTotalLockedGold(savingsCELO.address)
-		assert.isTrue(contractCELO.plus(toDonate).eq(contractCELO_3))
+		assert.isTrue(contractCELO.plus(toDonate1).eq(contractCELO_3))
 	})
 
 	it(`test withdrawing unlocked donation`, async () => {
@@ -149,9 +168,8 @@ contract('SavingsCELO', (accounts) => {
 		const savingsKit = new SavingsKit(kit, savingsCELO.address)
 
 		const a0savings = await savingsCELO.balanceOf(a0)
-		const toDonate = new BigNumber(103e18)
 		await goldToken
-			.transfer(savingsCELO.address, toDonate.toFixed(0))
+			.transfer(savingsCELO.address, toDonate2)
 			.sendAndWaitForReceipt({from: a1} as any)
 
 		// Withdraw in 3 chunks just to make things messy.
