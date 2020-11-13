@@ -12,11 +12,13 @@ import "./interfaces/IElection.sol";
 contract SavingsCELO is ERC20 {
 	using SafeMath for uint256;
 
+	address public _owner;
+	address public _voter;
+
 	IAccounts public _Accounts;
 	IERC20 public _GoldToken;
 	ILockedGold public _LockedGold;
 	IElection public _Election;
-	address public _owner;
 
 	struct PendingWithdrawal {
 		// The value of the pending withdrawal.
@@ -47,12 +49,22 @@ contract SavingsCELO is ERC20 {
 			"createAccount failed");
 	}
 
+	modifier ownerOnly() {
+        require(_owner == msg.sender, "caller must be the registered _owner");
+        _;
+    }
+
+	modifier voterOnly() {
+        require(_voter == msg.sender, "caller must be the registered _voter");
+        _;
+    }
+
 	/// Changes owner of the contract that has authorizeVoteSigner privileges.
-	function changeOwner(address newOwner) external {
-		require(msg.sender == _owner, "only current owner can change the owner");
+	function changeOwner(address newOwner) ownerOnly external {
 		require(newOwner != address(0x0), "must provide valid new owner");
 		_owner = newOwner;
 	}
+
 
 	/// Authorizes new vote signer that can manage voting for all of contract's locked
 	/// CELO. {v, r, s} constitutes proof-of-key-possession signature of signer for this
@@ -61,8 +73,7 @@ contract SavingsCELO is ERC20 {
 		address signer,
 		uint8 v,
 		bytes32 r,
-		bytes32 s) external {
-		require(msg.sender == _owner, "only current owner can authorize a new vote signer");
+		bytes32 s) ownerOnly external {
 		_Accounts.authorizeVoteSigner(signer, v, r, s);
 	}
 
