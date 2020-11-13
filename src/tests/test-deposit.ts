@@ -197,6 +197,30 @@ contract('SavingsCELO', (accounts) => {
 		const contractLockedCELO = await lockedGold.getAccountTotalLockedGold(savingsCELO.address)
 		assert.isTrue(contractLockedCELO.eq(0), `Locked CELO: ${contractLockedCELO}`)
 	})
+
+	it(`test 0 value and invalid arguments`, async () => {
+		const savingsCELO = await SavingsCELO.deployed()
+		const savingsKit = new SavingsKit(kit, savingsCELO.address)
+		// This is ok, and used in the donation flow.
+		await savingsKit
+			.deposit(0)
+			.sendAndWaitForReceipt({from: a0} as any)
+
+		try{
+			await (await savingsKit
+				.withdrawStart(0))
+				.sendAndWaitForReceipt({from: a0} as any)
+			assert.fail("withdrawStart must have failed")
+		} catch {}
+		try{
+			await savingsCELO.withdrawFinish(2, 0)
+			assert.fail("withdrawFinish must have failed")
+		} catch {}
+		try{
+			await savingsCELO.withdrawCancel(2, 0)
+			assert.fail("withdrawCancel must have failed")
+		} catch {}
+	})
 })
 
 export {}

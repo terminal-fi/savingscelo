@@ -91,6 +91,7 @@ contract SavingsCELO is ERC20 {
 
 		uint256 toLock = _GoldToken.balanceOf(address(this));
 		assert(toLock >= celoAmount);
+		// It is safe to call _LockedGold.lock() with 0 value.
 		_LockedGold.lock.value(toLock)();
 		emit Deposited(msg.sender, celoAmount, toMint);
 	}
@@ -114,6 +115,7 @@ contract SavingsCELO is ERC20 {
 		address lesserAfterActiveRevoke,
 		address greaterAfterActiveRevoke
 		) external {
+		require(savingsAmount > 0, "withdraw amount must be positive");
 		uint256 totalCELO = totalSupplyCELO();
 		uint256 totalSavingsCELO = this.totalSupply();
 		_burn(msg.sender, savingsAmount);
@@ -147,6 +149,8 @@ contract SavingsCELO is ERC20 {
 		emit WithdrawStarted(msg.sender, savingsAmount, pendingValue);
 	}
 
+	/// Helper function to revoke cast votes. See documentation for .withdrawStart function for more
+	/// information about the arguments.
 	function revokeVotes(
 		uint256 toRevoke,
 		address lesserAfterPendingRevoke,
@@ -187,14 +191,12 @@ contract SavingsCELO is ERC20 {
 	/// `index` is index of pending withdrawal to finish as returned by .pendingWithdrawals() call.
 	/// `indexGlobal` is index of matching pending withdrawal as returned by _LockedGold.getPendingWithdrawals() call.
 	function withdrawFinish(uint256 index, uint256 indexGlobal) external {
-		PendingWithdrawal[] storage pending = verifyWithdrawArgs(msg.sender, index, indexGlobal);
-		uint256 toWithdraw = pending[index].value;
+		PendingWithdrawal memory pending = popPendingWithdrawal(msg.sender, index, indexGlobal);
 		_LockedGold.withdraw(indexGlobal);
-		deletePendingWithdrawal(pending, index);
 		require(
-			_GoldToken.transfer(msg.sender, toWithdraw),
+			_GoldToken.transfer(msg.sender, pending.value),
 			"unexpected failure: CELO transfer has failed");
-		emit WithdrawFinished(msg.sender, toWithdraw);
+		emit WithdrawFinished(msg.sender, pending.value);
 	}
 
 	/// Cancels withdraw process, re-locking CELO back in the contract and returning SavingsCELO tokens back
@@ -203,15 +205,13 @@ contract SavingsCELO is ERC20 {
 	/// `index` is index of pending withdrawal to finish as returned by .pendingWithdrawals() call.
 	/// `indexGlobal` is index of matching pending withdrawal as returned by _LockedGold.getPendingWithdrawals() call.
 	function withdrawCancel(uint256 index, uint256 indexGlobal) external {
-		PendingWithdrawal[] storage pending = verifyWithdrawArgs(msg.sender, index, indexGlobal);
+		PendingWithdrawal memory pending = popPendingWithdrawal(msg.sender, index, indexGlobal);
 		uint256 totalCELO = totalSupplyCELO();
 		uint256 totalSavingsCELO = this.totalSupply();
-		uint256 toRelock = pending[index].value;
-		_LockedGold.relock(indexGlobal, toRelock);
-		deletePendingWithdrawal(pending, index);
-		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, toRelock);
+		_LockedGold.relock(indexGlobal, pending.value);
+		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, pending.value);
 		_mint(msg.sender, toMint);
-		emit WithdrawCanceled(msg.sender, toRelock, toMint);
+		emit WithdrawCanceled(msg.sender, pending.value, toMint);
 	}
 
 	/// Returns (values[], timestamps[]) of all pending withdrawals for given address.
@@ -229,6 +229,25 @@ contract SavingsCELO is ERC20 {
 		}
 		return (values, timestamps);
 	}
+
+	/// Helper function to verify indexes and to pop specific PendingWithdrawal from the list.
+	function popPendingWithdrawal(
+		address addr,
+		uint256 index,
+		uint256 indexGlobal) private returns(PendingWithdrawal memory pending) {
+		PendingWithdrawal[] storage pendings = pendingByAddr[addr];
+		require(index < pendings.length, "bad pending withdrawal index");
+		(uint256[] memory pendingValues, uint256[] memory pendingTimestamps) = _LockedGold.getPendingWithdrawals(address(this));
+		require(indexGlobal < pendingValues.length, "bad pending withdrawal indexGlobal");
+		require(pendings[index].value == pendingValues[indexGlobal], "mismatched value for index and indexGlobal");
+		require(pendings[index].timestamp == pendingTimestamps[indexGlobal], "mismatched timestamp for index and indexGlobal");
+		pending = pendings[index]; // This makes a copy.
+
+		pendings[index] = pendings[pendings.length - 1];
+		pendings.pop();
+		return pending;
+	}
+
 
 	/// Returns amount of CELO that can be claimed for savingsAmount SavingsCELO tokens.
 	function savingsToCELO(uint256 savingsAmount) external view returns (uint256) {
@@ -263,24 +282,6 @@ contract SavingsCELO is ERC20 {
 			return celoToAdd * 65536;
 		}
 		return celoToAdd * totalSavingsCELO / totalCELO;
-	}
-
-	function verifyWithdrawArgs(
-		address addr,
-		uint256 index,
-		uint256 indexGlobal) private view returns(PendingWithdrawal[] storage pending) {
-		pending = pendingByAddr[addr];
-		require(index < pending.length, "bad pending withdrawal index");
-		(uint256[] memory pendingValues, uint256[] memory pendingTimestamps) = _LockedGold.getPendingWithdrawals(address(this));
-		require(indexGlobal < pendingValues.length, "bad pending withdrawal indexGlobal");
-		require(pending[index].value == pendingValues[indexGlobal], "mismatched value for index and indexGlobal");
-		require(pending[index].timestamp == pendingTimestamps[indexGlobal], "mismatched timestamp for index and indexGlobal");
-		return pending;
-	}
-
-	function deletePendingWithdrawal(PendingWithdrawal[] storage list, uint256 index) private {
-		list[index] = list[list.length - 1];
-		list.pop();
 	}
 
 	receive() external payable {}
