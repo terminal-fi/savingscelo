@@ -4,7 +4,7 @@ import { addressToPublicKey } from '@celo/utils/lib/signatureUtils'
 import BigNumber from "bignumber.js";
 import { mineToNextEpoch } from "celo-devchain"
 import { SavingsKit } from "../savingskit"
-import { VoterV1 } from "../voterv1";
+import { newVoterV1, VoterV1 } from "../voterv1";
 import { SavingsCELOInstance, SavingsCELOVoterV1Instance } from "../../types/truffle-contracts";
 import { SavingsCELOVoterV1 } from "../../types/web3-v1-contracts/SavingsCELOVoterV1";
 
@@ -27,9 +27,11 @@ contract('SavingsCELO', (accounts) => {
 
 	before( async () => {
 		savingsCELO = await SavingsCELO.deployed()
-		savingsKit = new SavingsKit(kit, savingsCELO.address)
 		const savingsCELOVoterV1 = await SavingsCELOVoterV1.new(savingsCELO.address)
-		voterV1 = new VoterV1(kit, savingsCELOVoterV1.address)
+		await savingsCELO.authorizeVoterProxy(savingsCELOVoterV1.address, {from: owner})
+
+		savingsKit = new SavingsKit(kit, savingsCELO.address)
+		voterV1 = await newVoterV1(kit, savingsKit)
 	})
 
 	it(`create accounts`, async () => {
@@ -53,8 +55,6 @@ contract('SavingsCELO', (accounts) => {
 		await goldToken
 			.transfer(validator0, toWei('10000', 'ether'))
 			.sendAndWaitForReceipt({from: owner} as any)
-
-		await savingsCELO.authorizeVoterProxy(voterV1.voterV1Address, {from: owner})
 	})
 
 	it(`register validator group`, async () => {

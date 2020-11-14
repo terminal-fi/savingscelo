@@ -14,7 +14,7 @@ contract SavingsCELO is ERC20 {
 	using SafeMath for uint256;
 
 	address public _owner;
-	address public _voterProxy;
+	address public _voter;
 
 	IRegistry constant _registry = IRegistry(address(0x000000000000000000000000000000000000ce10));
 	IAccounts public _accounts;
@@ -70,11 +70,11 @@ contract SavingsCELO is ERC20 {
 	}
 
 	function authorizeVoterProxy(address proxy) ownerOnly external {
-		_voterProxy = proxy;
+		_voter = proxy;
 	}
 
 	modifier voterProxyOnly() {
-        require(_voterProxy == msg.sender, "caller must be the registered _voter");
+        require(_voter == msg.sender, "caller must be the registered _voter");
         _;
     }
 

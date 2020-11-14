@@ -17,9 +17,9 @@ export class SavingsKit {
 
 	constructor(
 		private kit: ContractKit,
-		public readonly savingsCELOAddress: Address) {
+		public readonly contractAddress: Address) {
 		this.contract = new kit.web3.eth.Contract(
-			savingsCELOJson.abi as any, savingsCELOAddress) as unknown as SavingsCELO
+			savingsCELOJson.abi as any, contractAddress) as unknown as SavingsCELO
 	}
 
 	public deposit = (celoAmount: BigNumber.Value) => {
@@ -33,10 +33,10 @@ export class SavingsKit {
 		const amt = new BigNumber(savingsAmount).toFixed(0)
 		const toUnlock = await this.contract.methods.savingsToCELO(amt).call()
 
-		const nonvoting = await lockedGold.getAccountNonvotingLockedGold(this.savingsCELOAddress)
+		const nonvoting = await lockedGold.getAccountNonvotingLockedGold(this.contractAddress)
 		const toRevoke = BigNumber.maximum(nonvoting.negated().plus(toUnlock), 0)
 
-		const votedGroups = await election.getGroupsVotedForByAccount(this.savingsCELOAddress)
+		const votedGroups = await election.getGroupsVotedForByAccount(this.contractAddress)
 		let pendingRevoke = {
 			lesser: "0x0000000000000000000000000000000000000000",
 			greater: "0x0000000000000000000000000000000000000000",
@@ -47,7 +47,7 @@ export class SavingsKit {
 		}
 		if (votedGroups.length > 0) {
 			const revokeGroup = votedGroups[votedGroups.length - 1]
-			const votes = await election.getVotesForGroupByAccount(this.savingsCELOAddress, revokeGroup)
+			const votes = await election.getVotesForGroupByAccount(this.contractAddress, revokeGroup)
 			const toRevokePending = BigNumber.minimum(toRevoke, votes.pending)
 			pendingRevoke = await election.findLesserAndGreaterAfterVote(votes.group, toRevokePending.negated())
 			activeRevoke = await election.findLesserAndGreaterAfterVote(votes.group, toRevoke.negated())
@@ -88,7 +88,7 @@ export class SavingsKit {
 
 	public withdrawIndexGlobal = async(pendings: PendingWithdrawal[], index: number) => {
 		const lockedGold = await this.kit.contracts.getLockedGold()
-		const pendingsGlobal = await lockedGold.getPendingWithdrawals(this.savingsCELOAddress)
+		const pendingsGlobal = await lockedGold.getPendingWithdrawals(this.contractAddress)
 		const idx = pendingsGlobal.findIndex((p) => (
 			p.value.eq(pendings[index].value) &&
 			p.time.eq(pendings[index].time)))

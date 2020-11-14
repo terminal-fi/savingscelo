@@ -3,24 +3,34 @@ import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
 
 import savingsCELOVoterV1Json from "../build/contracts/SavingsCELOVoterV1.json"
 import { SavingsCELOVoterV1 } from "../types/web3-v1-contracts/SavingsCELOVoterV1"
+import { SavingsKit } from "./savingskit"
+
+export async function newVoterV1(kit: ContractKit, savingsKit: SavingsKit) {
+	const voterV1Address = await savingsKit.contract.methods._voter().call()
+	const voterV1 = new VoterV1(kit, savingsKit, voterV1Address)
+	const proxyAddr = await voterV1.contract.methods._proxy().call()
+	if (proxyAddr !== savingsKit.contractAddress) {
+		new Error(`voterV1 _proxy: ${proxyAddr} != savingsCELO ${savingsKit.contractAddress}`)
+	}
+	return voterV1
+}
 
 export class VoterV1 {
 	public readonly contract: SavingsCELOVoterV1
 
 	constructor(
 		private kit: ContractKit,
-		public readonly voterV1Address: Address) {
+		private savingsKit: SavingsKit,
+		public contractAddress: Address) {
 		this.contract = new kit.web3.eth.Contract(
-			savingsCELOVoterV1Json.abi as any, voterV1Address) as unknown as SavingsCELOVoterV1
+			savingsCELOVoterV1Json.abi as any, contractAddress) as unknown as SavingsCELOVoterV1
 	}
 
 	changeVotedGroup = async(newGroup: Address) => {
-		const savingsCELOAddress = await this.contract.methods._proxy().call()
 		const votedGroup = await this.contract.methods.votedGroup().call()
-
 		const election = await this.kit.contracts.getElection()
 
-		const groups = await election.getGroupsVotedForByAccount(savingsCELOAddress)
+		const groups = await election.getGroupsVotedForByAccount(this.savingsKit.contractAddress)
 		let votedGroupIndex = groups.indexOf(votedGroup)
 		let pendingRevoke = {
 			lesser: "0x0000000000000000000000000000000000000000",
@@ -31,7 +41,7 @@ export class VoterV1 {
 			greater: "0x0000000000000000000000000000000000000000",
 		}
 		if (votedGroupIndex >= 0) {
-			const votes = await election.getVotesForGroupByAccount(savingsCELOAddress, votedGroup)
+			const votes = await election.getVotesForGroupByAccount(this.savingsKit.contractAddress, votedGroup)
 			pendingRevoke = await election.findLesserAndGreaterAfterVote(votes.group, votes.pending.negated())
 			activeRevoke = await election.findLesserAndGreaterAfterVote(votes.group, votes.pending.plus(votes.active).negated())
 		} else {
