@@ -3,7 +3,7 @@ import { newKit } from "@celo/contractkit"
 import BigNumber from "bignumber.js";
 import { increaseTime, Provider } from "celo-devchain"
 import { SavingsKit } from "../savingskit";
-import { Deposited, WithdrawFinished } from "../../types/truffle-contracts/SavingsCELO";
+import { Deposited, SavingsCELOInstance, WithdrawFinished } from "../../types/truffle-contracts/SavingsCELO";
 
 const SavingsCELO = artifacts.require("SavingsCELO");
 
@@ -18,6 +18,14 @@ contract('SavingsCELO', (accounts) => {
 	const toLock = toWei('10', 'ether')
 	const toDonate1 = toWei('100', 'ether')
 	const toDonate2 = toWei('110', 'ether')
+
+	let savingsCELO: SavingsCELOInstance
+	let savingsKit: SavingsKit
+
+	before( async () => {
+		savingsCELO = await SavingsCELO.deployed()
+		savingsKit = new SavingsKit(kit, savingsCELO.address)
+	})
 
 	it(`create accounts`, async () => {
 		const goldToken = await kit.contracts.getGoldToken()
@@ -40,7 +48,6 @@ contract('SavingsCELO', (accounts) => {
 	it(`simple deposit`, async () => {
 		const goldToken = await kit.contracts.getGoldToken()
 		const lockedGold = await kit.contracts.getLockedGold()
-		const savingsCELO = await SavingsCELO.deployed()
 
 		await goldToken
 			.increaseAllowance(savingsCELO.address, toLock)
@@ -66,9 +73,6 @@ contract('SavingsCELO', (accounts) => {
 	})
 
 	it(`invalid withdraws`, async () => {
-		const savingsCELO = await SavingsCELO.deployed()
-		const savingsKit = new SavingsKit(kit, savingsCELO.address)
-
 		const toWithdraw = await savingsCELO.celoToSavings(toLock)
 		try{
 			await (await savingsKit
@@ -85,9 +89,6 @@ contract('SavingsCELO', (accounts) => {
 	})
 
 	it(`simiple withdraw and withdraw cancel`, async () => {
-		const savingsCELO = await SavingsCELO.deployed()
-		const savingsKit = new SavingsKit(kit, savingsCELO.address)
-
 		const a0savings = await savingsCELO.balanceOf(a0)
 		const toWithdraw = await savingsCELO.celoToSavings(toWei('5', 'ether'))
 		const toCancel = a0savings.sub(toWithdraw)
@@ -137,7 +138,6 @@ contract('SavingsCELO', (accounts) => {
 	it(`test celo donations`, async () => {
 		const goldToken = await kit.contracts.getGoldToken()
 		const lockedGold = await kit.contracts.getLockedGold()
-		const savingsCELO = await SavingsCELO.deployed()
 
 		const contractCELO = await lockedGold.getAccountTotalLockedGold(savingsCELO.address)
 		const savingsToCelo = await savingsCELO.savingsToCELO(toWei('1', 'ether'))
@@ -164,8 +164,6 @@ contract('SavingsCELO', (accounts) => {
 	it(`test withdrawing unlocked donation`, async () => {
 		const goldToken = await kit.contracts.getGoldToken()
 		const lockedGold = await kit.contracts.getLockedGold()
-		const savingsCELO = await SavingsCELO.deployed()
-		const savingsKit = new SavingsKit(kit, savingsCELO.address)
 
 		const a0savings = await savingsCELO.balanceOf(a0)
 		await goldToken
@@ -199,8 +197,6 @@ contract('SavingsCELO', (accounts) => {
 	})
 
 	it(`test 0 value and invalid arguments`, async () => {
-		const savingsCELO = await SavingsCELO.deployed()
-		const savingsKit = new SavingsKit(kit, savingsCELO.address)
 		// This is ok, and used in the donation flow.
 		await savingsKit
 			.deposit(0)

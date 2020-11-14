@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+import "./interfaces/IRegistry.sol";
 import "./interfaces/IAccounts.sol";
 import "./interfaces/ILockedGold.sol";
 import "./interfaces/IElection.sol";
@@ -13,8 +14,9 @@ contract SavingsCELO is ERC20 {
 	using SafeMath for uint256;
 
 	address public _owner;
-	address public _voter;
+	address public _voterProxy;
 
+	IRegistry constant _Registry = IRegistry(address(0x000000000000000000000000000000000000ce10));
 	IAccounts public _Accounts;
 	IERC20 public _GoldToken;
 	ILockedGold public _LockedGold;
@@ -33,17 +35,12 @@ contract SavingsCELO is ERC20 {
 	event WithdrawFinished(address indexed from, uint256 celoAmount);
 	event WithdrawCanceled(address indexed from, uint256 celoAmount, uint256 savingsAmount);
 
-	constructor (
-		address Accounts,
-		address GoldToken,
-		address LockedGold,
-		address Election
-	) ERC20("Savings CELO", "sCELO") public {
+	constructor () ERC20("Savings CELO", "sCELO") public {
 		_owner = msg.sender;
-		_Accounts = IAccounts(Accounts);
-		_GoldToken = IERC20(GoldToken);
-		_LockedGold = ILockedGold(LockedGold);
-		_Election = IElection(Election);
+		_Accounts = IAccounts(_Registry.getAddressForStringOrDie("Accounts"));
+		_GoldToken = IERC20(_Registry.getAddressForStringOrDie("GoldToken"));
+		_LockedGold = ILockedGold(_Registry.getAddressForStringOrDie("LockedGold"));
+		_Election = IElection(_Registry.getAddressForStringOrDie("Election"));
 		require(
 			_Accounts.createAccount(),
 			"createAccount failed");
@@ -51,11 +48,6 @@ contract SavingsCELO is ERC20 {
 
 	modifier ownerOnly() {
         require(_owner == msg.sender, "caller must be the registered _owner");
-        _;
-    }
-
-	modifier voterOnly() {
-        require(_voter == msg.sender, "caller must be the registered _voter");
         _;
     }
 
@@ -75,6 +67,42 @@ contract SavingsCELO is ERC20 {
 		bytes32 r,
 		bytes32 s) ownerOnly external {
 		_Accounts.authorizeVoteSigner(signer, v, r, s);
+	}
+
+	function authorizeVoterProxy(address proxy) ownerOnly external {
+		_voterProxy = proxy;
+	}
+
+	modifier voterProxyOnly() {
+        require(_voterProxy == msg.sender, "caller must be the registered _voter");
+        _;
+    }
+
+	function proxyVote(
+		address group,
+		uint256 value,
+		address lesser,
+		address greater) voterProxyOnly external returns (bool) {
+		return _Election.vote(group, value, lesser, greater);
+	}
+	function proxyActivate(address group) voterProxyOnly external returns (bool) {
+		return _Election.activate(group);
+	}
+	function proxyRevokeActive(
+		address group,
+		uint256 value,
+		address lesser,
+		address greater,
+		uint256 index) voterProxyOnly external returns (bool) {
+		return _Election.revokeActive(group, value, lesser, greater, index);
+	}
+	function proxyRevokePending(
+		address group,
+		uint256 value,
+		address lesser,
+		address greater,
+		uint256 index) voterProxyOnly external returns (bool) {
+		return _Election.revokePending(group, value, lesser, greater, index);
 	}
 
 	/// Deposits CELO to the contract in exchange of SavingsCELO tokens. CELO tokens are transfered
