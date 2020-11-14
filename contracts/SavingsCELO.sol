@@ -16,11 +16,11 @@ contract SavingsCELO is ERC20 {
 	address public _owner;
 	address public _voterProxy;
 
-	IRegistry constant _Registry = IRegistry(address(0x000000000000000000000000000000000000ce10));
-	IAccounts public _Accounts;
-	IERC20 public _GoldToken;
-	ILockedGold public _LockedGold;
-	IElection public _Election;
+	IRegistry constant _registry = IRegistry(address(0x000000000000000000000000000000000000ce10));
+	IAccounts public _accounts;
+	IERC20 public _goldToken;
+	ILockedGold public _lockedGold;
+	IElection public _election;
 
 	struct PendingWithdrawal {
 		// The value of the pending withdrawal.
@@ -37,12 +37,12 @@ contract SavingsCELO is ERC20 {
 
 	constructor () ERC20("Savings CELO", "sCELO") public {
 		_owner = msg.sender;
-		_Accounts = IAccounts(_Registry.getAddressForStringOrDie("Accounts"));
-		_GoldToken = IERC20(_Registry.getAddressForStringOrDie("GoldToken"));
-		_LockedGold = ILockedGold(_Registry.getAddressForStringOrDie("LockedGold"));
-		_Election = IElection(_Registry.getAddressForStringOrDie("Election"));
+		_accounts = IAccounts(_registry.getAddressForStringOrDie("Accounts"));
+		_goldToken = IERC20(_registry.getAddressForStringOrDie("GoldToken"));
+		_lockedGold = ILockedGold(_registry.getAddressForStringOrDie("LockedGold"));
+		_election = IElection(_registry.getAddressForStringOrDie("Election"));
 		require(
-			_Accounts.createAccount(),
+			_accounts.createAccount(),
 			"createAccount failed");
 	}
 
@@ -66,7 +66,7 @@ contract SavingsCELO is ERC20 {
 		uint8 v,
 		bytes32 r,
 		bytes32 s) ownerOnly external {
-		_Accounts.authorizeVoteSigner(signer, v, r, s);
+		_accounts.authorizeVoteSigner(signer, v, r, s);
 	}
 
 	function authorizeVoterProxy(address proxy) ownerOnly external {
@@ -83,10 +83,10 @@ contract SavingsCELO is ERC20 {
 		uint256 value,
 		address lesser,
 		address greater) voterProxyOnly external returns (bool) {
-		return _Election.vote(group, value, lesser, greater);
+		return _election.vote(group, value, lesser, greater);
 	}
 	function proxyActivate(address group) voterProxyOnly external returns (bool) {
-		return _Election.activate(group);
+		return _election.activate(group);
 	}
 	function proxyRevokeActive(
 		address group,
@@ -94,7 +94,7 @@ contract SavingsCELO is ERC20 {
 		address lesser,
 		address greater,
 		uint256 index) voterProxyOnly external returns (bool) {
-		return _Election.revokeActive(group, value, lesser, greater, index);
+		return _election.revokeActive(group, value, lesser, greater, index);
 	}
 	function proxyRevokePending(
 		address group,
@@ -102,7 +102,7 @@ contract SavingsCELO is ERC20 {
 		address lesser,
 		address greater,
 		uint256 index) voterProxyOnly external returns (bool) {
-		return _Election.revokePending(group, value, lesser, greater, index);
+		return _election.revokePending(group, value, lesser, greater, index);
 	}
 
 	/// Deposits CELO to the contract in exchange of SavingsCELO tokens. CELO tokens are transfered
@@ -112,15 +112,15 @@ contract SavingsCELO is ERC20 {
 		uint256 totalCELO = totalSupplyCELO();
 		uint256 totalSavingsCELO = this.totalSupply();
 		require(
-			_GoldToken.transferFrom(msg.sender, address(this), celoAmount),
+			_goldToken.transferFrom(msg.sender, address(this), celoAmount),
 			"transfer of CELO failed");
 		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, celoAmount);
 		_mint(msg.sender, toMint);
 
-		uint256 toLock = _GoldToken.balanceOf(address(this));
+		uint256 toLock = _goldToken.balanceOf(address(this));
 		assert(toLock >= celoAmount);
-		// It is safe to call _LockedGold.lock() with 0 value.
-		_LockedGold.lock.value(toLock)();
+		// It is safe to call _lockedGold.lock() with 0 value.
+		_lockedGold.lock.value(toLock)();
 		emit Deposited(msg.sender, celoAmount, toMint);
 	}
 
@@ -150,14 +150,14 @@ contract SavingsCELO is ERC20 {
 		// If there is any unlocked CELO, lock it to make rest of the logic always
 		// consistent. There should never be unlocked CELO in the contract unless some
 		// user explicitly donates it.
-		uint256 unlocked = _GoldToken.balanceOf(address(this));
+		uint256 unlocked = _goldToken.balanceOf(address(this));
 		if (unlocked > 0) {
-			_LockedGold.lock.value(unlocked)();
+			_lockedGold.lock.value(unlocked)();
 		}
 		// toUnlock formula comes from:
 		// (supply / totalCELO) === (supply - savingsAmount) / (totalCELO - toUnlock)
 		uint256 toUnlock = savingsAmount * totalCELO / totalSavingsCELO;
-		uint256 nonvoting = _LockedGold.getAccountNonvotingLockedGold(address(this));
+		uint256 nonvoting = _lockedGold.getAccountNonvotingLockedGold(address(this));
 		if (toUnlock > nonvoting) {
 			revokeVotes(
 				toUnlock - nonvoting,
@@ -167,9 +167,9 @@ contract SavingsCELO is ERC20 {
 				greaterAfterActiveRevoke
 			);
 		}
-		_LockedGold.unlock(toUnlock);
+		_lockedGold.unlock(toUnlock);
 
-		(uint256[] memory pendingValues, uint256[] memory pendingTimestamps) = _LockedGold.getPendingWithdrawals(address(this));
+		(uint256[] memory pendingValues, uint256[] memory pendingTimestamps) = _lockedGold.getPendingWithdrawals(address(this));
 		uint256 pendingValue = pendingValues[pendingValues.length - 1];
 		uint256 pendingTimestamp = pendingTimestamps[pendingTimestamps.length - 1];
 		assert(pendingValue == toUnlock);
@@ -186,12 +186,12 @@ contract SavingsCELO is ERC20 {
 		address lesserAfterActiveRevoke,
 		address greaterAfterActiveRevoke
 	) private {
-		address[] memory votedGroups = _Election.getGroupsVotedForByAccount(address(this));
+		address[] memory votedGroups = _election.getGroupsVotedForByAccount(address(this));
 		require(votedGroups.length > 0, "not enough votes to revoke");
 		uint256 revokeIndex = votedGroups.length - 1;
 		address revokeGroup = votedGroups[revokeIndex];
-		uint256 pendingVotes = _Election.getPendingVotesForGroupByAccount(revokeGroup, address(this));
-		uint256 activeVotes = _Election.getActiveVotesForGroupByAccount(revokeGroup, address(this));
+		uint256 pendingVotes = _election.getPendingVotesForGroupByAccount(revokeGroup, address(this));
+		uint256 activeVotes = _election.getActiveVotesForGroupByAccount(revokeGroup, address(this));
 		require(
 			pendingVotes + activeVotes >= toRevoke,
 			"not enough unlocked CELO and revokable votes");
@@ -203,13 +203,13 @@ contract SavingsCELO is ERC20 {
 		uint256 toRevokeActive = toRevoke - toRevokePending;
 		if (toRevokePending > 0) {
 			require(
-				_Election.revokePending(
+				_election.revokePending(
 				revokeGroup, toRevokePending, lesserAfterPendingRevoke, greaterAfterPendingRevoke, revokeIndex),
 				"revokePending failed");
 		}
 		if (toRevokeActive > 0) {
 			require(
-				_Election.revokeActive(
+				_election.revokeActive(
 				revokeGroup, toRevokeActive, lesserAfterActiveRevoke, greaterAfterActiveRevoke, revokeIndex),
 				"revokeActive failed");
 		}
@@ -217,12 +217,12 @@ contract SavingsCELO is ERC20 {
 
 	/// Finishes withdraw process, transfering unlocked CELO back to the caller.
 	/// `index` is index of pending withdrawal to finish as returned by .pendingWithdrawals() call.
-	/// `indexGlobal` is index of matching pending withdrawal as returned by _LockedGold.getPendingWithdrawals() call.
+	/// `indexGlobal` is index of matching pending withdrawal as returned by _lockedGold.getPendingWithdrawals() call.
 	function withdrawFinish(uint256 index, uint256 indexGlobal) external {
 		PendingWithdrawal memory pending = popPendingWithdrawal(msg.sender, index, indexGlobal);
-		_LockedGold.withdraw(indexGlobal);
+		_lockedGold.withdraw(indexGlobal);
 		require(
-			_GoldToken.transfer(msg.sender, pending.value),
+			_goldToken.transfer(msg.sender, pending.value),
 			"unexpected failure: CELO transfer has failed");
 		emit WithdrawFinished(msg.sender, pending.value);
 	}
@@ -231,12 +231,12 @@ contract SavingsCELO is ERC20 {
 	/// to the caller. At the time of re-locking, SavingsCELO can be more valuable compared to when .withdrawStart
 	/// was called. Thus caller might receive less SavingsCELO compared to what was supplied to .withdrawStart.
 	/// `index` is index of pending withdrawal to finish as returned by .pendingWithdrawals() call.
-	/// `indexGlobal` is index of matching pending withdrawal as returned by _LockedGold.getPendingWithdrawals() call.
+	/// `indexGlobal` is index of matching pending withdrawal as returned by _lockedGold.getPendingWithdrawals() call.
 	function withdrawCancel(uint256 index, uint256 indexGlobal) external {
 		PendingWithdrawal memory pending = popPendingWithdrawal(msg.sender, index, indexGlobal);
 		uint256 totalCELO = totalSupplyCELO();
 		uint256 totalSavingsCELO = this.totalSupply();
-		_LockedGold.relock(indexGlobal, pending.value);
+		_lockedGold.relock(indexGlobal, pending.value);
 		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, pending.value);
 		_mint(msg.sender, toMint);
 		emit WithdrawCanceled(msg.sender, pending.value, toMint);
@@ -265,7 +265,7 @@ contract SavingsCELO is ERC20 {
 		uint256 indexGlobal) private returns(PendingWithdrawal memory pending) {
 		PendingWithdrawal[] storage pendings = pendingByAddr[addr];
 		require(index < pendings.length, "bad pending withdrawal index");
-		(uint256[] memory pendingValues, uint256[] memory pendingTimestamps) = _LockedGold.getPendingWithdrawals(address(this));
+		(uint256[] memory pendingValues, uint256[] memory pendingTimestamps) = _lockedGold.getPendingWithdrawals(address(this));
 		require(indexGlobal < pendingValues.length, "bad pending withdrawal indexGlobal");
 		require(pendings[index].value == pendingValues[indexGlobal], "mismatched value for index and indexGlobal");
 		require(pendings[index].timestamp == pendingTimestamps[indexGlobal], "mismatched timestamp for index and indexGlobal");
@@ -294,8 +294,8 @@ contract SavingsCELO is ERC20 {
 	}
 
 	function totalSupplyCELO() internal view returns(uint256) {
-		uint256 locked = _LockedGold.getAccountTotalLockedGold(address(this));
-		uint256 unlocked = _GoldToken.balanceOf(address(this));
+		uint256 locked = _lockedGold.getAccountTotalLockedGold(address(this));
+		uint256 unlocked = _goldToken.balanceOf(address(this));
 		return locked + unlocked;
 	}
 

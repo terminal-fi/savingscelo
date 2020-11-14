@@ -4,7 +4,7 @@ import { addressToPublicKey } from '@celo/utils/lib/signatureUtils'
 import BigNumber from "bignumber.js";
 import { mineToNextEpoch } from "celo-devchain"
 import { SavingsKit } from "../savingskit"
-import { voterV1ActivateAndVote } from "../voter-utils";
+import { VoterV1 } from "../voterv1";
 import { SavingsCELOInstance, SavingsCELOVoterV1Instance } from "../../types/truffle-contracts";
 import { SavingsCELOVoterV1 } from "../../types/web3-v1-contracts/SavingsCELOVoterV1";
 
@@ -23,12 +23,13 @@ contract('SavingsCELO', (accounts) => {
 
 	let savingsCELO: SavingsCELOInstance
 	let savingsKit: SavingsKit
-	let savingsCELOVoterV1: SavingsCELOVoterV1Instance
+	let voterV1: VoterV1
 
 	before( async () => {
 		savingsCELO = await SavingsCELO.deployed()
 		savingsKit = new SavingsKit(kit, savingsCELO.address)
-		savingsCELOVoterV1 = await SavingsCELOVoterV1.new(savingsCELO.address)
+		const savingsCELOVoterV1 = await SavingsCELOVoterV1.new(savingsCELO.address)
+		voterV1 = new VoterV1(kit, savingsCELOVoterV1.address)
 	})
 
 	it(`create accounts`, async () => {
@@ -53,7 +54,7 @@ contract('SavingsCELO', (accounts) => {
 			.transfer(validator0, toWei('10000', 'ether'))
 			.sendAndWaitForReceipt({from: owner} as any)
 
-		await savingsCELO.authorizeVoterProxy(savingsCELOVoterV1.address, {from: owner})
+		await savingsCELO.authorizeVoterProxy(voterV1.voterV1Address, {from: owner})
 	})
 
 	it(`register validator group`, async () => {
@@ -92,14 +93,9 @@ contract('SavingsCELO', (accounts) => {
 			.addMember(vgroup, validator0))
 			.sendAndWaitForReceipt({from: vgroup} as any)
 
-		await savingsCELOVoterV1.changeVotedGroup(
-			vgroup,
-			0,
-			"0x0000000000000000000000000000000000000000",
-			"0x0000000000000000000000000000000000000000",
-			"0x0000000000000000000000000000000000000000",
-			"0x0000000000000000000000000000000000000000",
-			{from: owner})
+		await (await voterV1
+			.changeVotedGroup(vgroup))
+			.sendAndWaitForReceipt({from: owner} as any)
 	})
 
 	it(`withdraw pending and active votes`, async () => {
@@ -111,8 +107,8 @@ contract('SavingsCELO', (accounts) => {
 
 		// Deposit 1000 CELO and vote for `vgroup`
 		await savingsCELO.deposit(toWei('1000', 'ether'), {from: locker})
-		await (await
-			voterV1ActivateAndVote(kit, savingsCELOVoterV1.address))
+		await (await voterV1
+			.activateAndVote())
 			.sendAndWaitForReceipt({from: locker} as any)
 
 		// Withdraw 500 CELO, forcing revoking of half of the votes.
@@ -129,16 +125,16 @@ contract('SavingsCELO', (accounts) => {
 		assert.isTrue(activeVotes.eq(0))
 
 		await mineToNextEpoch(kit)
-		await (await
-			voterV1ActivateAndVote(kit, savingsCELOVoterV1.address))
+		await (await voterV1
+			.activateAndVote())
 			.sendAndWaitForReceipt({from: locker} as any)
 		activeVotes = await election.getActiveVotesForGroup(vgroup)
 		assert.isTrue(activeVotes.eq(toWei('500', 'ether')), `activeVotes: ${activeVotes}`)
 
 		// Cancel withdraw of 500 CELO, forcing to re-lock and re-vote.
 		await savingsCELO.withdrawCancel(0, 0, {from: locker})
-		await (await
-			voterV1ActivateAndVote(kit, savingsCELOVoterV1.address))
+		await (await voterV1
+			.activateAndVote())
 			.sendAndWaitForReceipt({from: locker} as any)
 
 		totalVotes = await election.getTotalVotesForGroup(vgroup)

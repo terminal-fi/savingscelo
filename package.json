@@ -22,11 +22,10 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "compile": "truffle compile && npx typechain --target=truffle-v5 'build/contracts/*.json'",
-    "compile:ts": "npx typechain --target=web3-v1 'build/contracts/*.json' && npx tsc -b",
+    "compile": "truffle compile && npx typechain --target=truffle-v5 'build/contracts/*.json' && npx typechain --target=web3-v1  'build/contracts/*.json'",
     "migrate": "npm run compile && npx tsc -b ./tsconfig.migrate.json && truffle migrate --reset",
     "test": "./testall.sh",
-    "testone": "npm run compile:ts && truffle test --bail",
+    "testone": "npx tsc -b && truffle test --bail",
     "ganache": "npx celo-devchain --port 7545 --core v1"
   },
   "author": "Zviad Metreveli",

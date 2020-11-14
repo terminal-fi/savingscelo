@@ -15,15 +15,15 @@ contract SavingsCELOVoterV1 {
 	IVoterProxy public _proxy;
 	address public votedGroup;
 
-	IRegistry constant _Registry = IRegistry(address(0x000000000000000000000000000000000000ce10));
-	ILockedGold public _LockedGold;
-	IElection public _Election;
+	IRegistry constant _registry = IRegistry(address(0x000000000000000000000000000000000000ce10));
+	ILockedGold public _lockedGold;
+	IElection public _election;
 
 	constructor (address savingsCELO) public {
 		_owner = msg.sender;
 		_proxy = IVoterProxy(savingsCELO);
-		_LockedGold = ILockedGold(_Registry.getAddressForStringOrDie("LockedGold"));
-		_Election = IElection(_Registry.getAddressForStringOrDie("Election"));
+		_lockedGold = ILockedGold(_registry.getAddressForStringOrDie("LockedGold"));
+		_election = IElection(_registry.getAddressForStringOrDie("Election"));
 	}
 
 	modifier ownerOnly() {
@@ -44,8 +44,8 @@ contract SavingsCELOVoterV1 {
 		address lesserAfterActiveRevoke,
 		address greaterAfterActiveRevoke) ownerOnly external {
 		if (votedGroup != address(0)) {
-			uint256 pendingVotes = _Election.getPendingVotesForGroupByAccount(votedGroup, address(_proxy));
-			uint256 activeVotes = _Election.getActiveVotesForGroupByAccount(votedGroup, address(_proxy));
+			uint256 pendingVotes = _election.getPendingVotesForGroupByAccount(votedGroup, address(_proxy));
+			uint256 activeVotes = _election.getActiveVotesForGroupByAccount(votedGroup, address(_proxy));
 			require(
 				_proxy.proxyRevokePending(
 					votedGroup, pendingVotes, lesserAfterPendingRevoke, greaterAfterPendingRevoke, votedGroupIndex),
@@ -58,17 +58,17 @@ contract SavingsCELOVoterV1 {
 		votedGroup = newGroup;
 	}
 
-	function ActivateAndVote(
+	function activateAndVote(
 		address lesser,
 		address greater
 	) external {
 		require(votedGroup != address(0), "voted group is not set");
-		if (_Election.hasActivatablePendingVotes(address(_proxy), votedGroup)) {
+		if (_election.hasActivatablePendingVotes(address(_proxy), votedGroup)) {
 			require(
 				_proxy.proxyActivate(votedGroup),
 				"activate for voted group failed");
 		}
-		uint256 toVote = _LockedGold.getAccountNonvotingLockedGold(address(_proxy));
+		uint256 toVote = _lockedGold.getAccountNonvotingLockedGold(address(_proxy));
 		if (toVote > 0) {
 			require(
 				_proxy.proxyVote(votedGroup, toVote, lesser, greater),
