@@ -9,6 +9,7 @@ import "./interfaces/IRegistry.sol";
 import "./interfaces/IAccounts.sol";
 import "./interfaces/ILockedGold.sol";
 import "./interfaces/IElection.sol";
+import "./interfaces/IGovernance.sol";
 
 contract SavingsCELO is ERC20 {
 	using SafeMath for uint256;
@@ -21,6 +22,7 @@ contract SavingsCELO is ERC20 {
 	IERC20 public _goldToken;
 	ILockedGold public _lockedGold;
 	IElection public _election;
+	IGovernance public _governance;
 
 	struct PendingWithdrawal {
 		// The value of the pending withdrawal.
@@ -41,6 +43,7 @@ contract SavingsCELO is ERC20 {
 		_goldToken = IERC20(_registry.getAddressForStringOrDie("GoldToken"));
 		_lockedGold = ILockedGold(_registry.getAddressForStringOrDie("LockedGold"));
 		_election = IElection(_registry.getAddressForStringOrDie("Election"));
+		_governance = IGovernance(_registry.getAddressForStringOrDie("Governance"));
 		require(
 			_accounts.createAccount(),
 			"createAccount failed");
@@ -60,7 +63,11 @@ contract SavingsCELO is ERC20 {
 
 	/// Authorizes new vote signer that can manage voting for all of contract's locked
 	/// CELO. {v, r, s} constitutes proof-of-key-possession signature of signer for this
-	/// contracts address.
+	/// contract address.
+	/// Vote Signer authorization exists only as a means of a potential escape-hatch if
+	/// some sort of really unexpected issue occurs. By default, it is expected that there
+	/// will be no authorized vote signer, and a voting contract will be configured using
+	/// .authorizeVoterProxy call instead.
 	function authorizeVoteSigner(
 		address signer,
 		uint8 v,
@@ -69,6 +76,7 @@ contract SavingsCELO is ERC20 {
 		_accounts.authorizeVoteSigner(signer, v, r, s);
 	}
 
+	/// Authorizes another contract to perform voting on behalf of SavingsCELO.
 	function authorizeVoterProxy(address proxy) ownerOnly external {
 		_voter = proxy;
 	}
@@ -103,6 +111,12 @@ contract SavingsCELO is ERC20 {
 		address greater,
 		uint256 index) voterProxyOnly external returns (bool) {
 		return _election.revokePending(group, value, lesser, greater, index);
+	}
+	function proxyGovernanceVote(
+		uint256 proposalId,
+		uint256 index,
+		VoteValue value) voterProxyOnly external returns (bool) {
+		return _governance.vote(proposalId, index, value);
 	}
 
 	/// Deposits CELO to the contract in exchange of SavingsCELO tokens. CELO tokens are transfered
