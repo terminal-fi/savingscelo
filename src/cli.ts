@@ -11,6 +11,7 @@ process.on('unhandledRejection', (reason, _promise) => {
 	process.exit(0)
 })
 
+// TODO(zviad): add support for Ledger.
 program
 	.option("-n --network <url>", "Celo network to connect to", "http://127.0.0.1:7545")
 	.option("--contract <address>", "SavingsCELO contract address", "0x6ee7F5347120e43c1dB116dd140a3173D5f899E8")
