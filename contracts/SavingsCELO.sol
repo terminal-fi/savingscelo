@@ -120,8 +120,8 @@ contract SavingsCELO is ERC20 {
 	}
 
 	/// Deposits CELO to the contract in exchange of SavingsCELO tokens. CELO tokens are transfered
-	/// using ERC20.transferFrom call, thus caller must increaseAllowance first to allow for the
-	/// transfer to go through.
+	/// using ERC20.transferFrom call, thus caller must call .approve or .increaseAllowance first to
+	/// allow for the transfer to go through.
 	function deposit(uint256 celoAmount) external {
 		uint256 totalCELO = totalSupplyCELO();
 		uint256 totalSavingsCELO = this.totalSupply();

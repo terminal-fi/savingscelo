@@ -102,7 +102,7 @@ contract('SavingsCELO', (accounts) => {
 		const goldToken = await kit.contracts.getGoldToken()
 		const election = await kit.contracts.getElection()
 
-		let tx = await goldToken.increaseAllowance(savingsCELO.address, 1e35.toFixed(0))
+		let tx = await goldToken.approve(savingsCELO.address, new BigNumber(1e35).toFixed(0))
 		await tx.sendAndWaitForReceipt({from: locker} as any)
 
 		// Deposit 1000 CELO and vote for `vgroup`
