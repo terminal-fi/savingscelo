@@ -3,9 +3,8 @@ import { toWei } from "web3-utils"
 import { program } from "commander"
 import BigNumber from "bignumber.js"
 import { CeloTransactionObject, ContractKit, newKit } from "@celo/contractkit"
-import { AddressValidation, LedgerWallet, newLedgerWalletWithSetup } from "@celo/contractkit/lib/wallets/ledger-wallet"
+import { AddressValidation, newLedgerWalletWithSetup } from "@celo/contractkit/lib/wallets/ledger-wallet"
 import TransportNodeHid from "@ledgerhq/hw-transport-node-hid"
-
 
 import { SavingsKit } from "./savingskit"
 
@@ -54,7 +53,7 @@ async function initKit() {
 }
 
 async function sendTX(name: string, tx: CeloTransactionObject<unknown>) {
-	console.info(`Sending TX: ${name} ...`, tx)
+	console.info(`Sending TX: ${name} ...`)
 	const result = await tx.send()
 	const hash = await result.getHash()
 	console.info(`Waiting TX: ${hash} ...`)
