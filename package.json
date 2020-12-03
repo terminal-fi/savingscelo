@@ -34,7 +34,8 @@
     "build": "npm run compile:contracts && npm run compile:ts",
     "test": "./testall.sh",
     "testone": "npm run compile:ts && npx truffle test --bail",
-    "ganache": "npx celo-devchain --port 7545 --core v1"
+    "ganache": "rm -f ./src/deploy/ganache.*.json && npx celo-devchain --port 7545 --core v1",
+    "deploy": "npx ts-node ./src/deploy/deployer.ts"
   },
   "author": "Zviad Metreveli",
   "license": "ISC"

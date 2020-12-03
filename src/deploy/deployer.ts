@@ -18,7 +18,7 @@ process.on('unhandledRejection', (reason, _promise) => {
 })
 
 program
-	.option("-n --network <name>", "Network to deploy to.")
+	.option("-n --network <name>", "Network to deploy to. Options: ganache, alfajores, baklava, mainnet", "ganache")
 	.parse()
 
 const networks: {[key: string]: string} = {
