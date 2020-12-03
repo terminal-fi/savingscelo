@@ -173,7 +173,7 @@ program
 
 program
 	.command("voter:activate")
-	.description("Activates pending votes and casts new votes for SavingsCELO. Anyone can call this method")
+	.description("Activate pending votes and cast new votes for SavingsCELO. Anyone can call this method")
 	.action(async () => {
 		const {kit, savingsKit} = await initKit()
 		const voterV1 = await newVoterV1(kit, savingsKit)
@@ -189,7 +189,7 @@ program
 
 program
 	.command("voter:change-group <address>")
-	.description("Changes voted group for SavingsCELO. Only _owner of the VoterV1 contract can call this method")
+	.description("Change voted group for SavingsCELO. Only _owner of the VoterV1 contract can call this method")
 	.action(async (newGroup: string) => {
 		const {kit, savingsKit} = await initKit()
 		const voterV1 = await newVoterV1(kit, savingsKit)
