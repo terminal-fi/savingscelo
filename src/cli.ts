@@ -52,6 +52,10 @@ async function initKit() {
 	const networkId = await kit.web3.eth.getChainId()
 	let contractAddr
 	switch (networkId) {
+	case 1337:
+		const ganacheSavingsCELO = require("./deploy/ganache.SavingsCELO.addr.json")
+		contractAddr = ganacheSavingsCELO.address
+		break
 	case 44787:
 		contractAddr = alfajoresSavingsCELO.address
 		break

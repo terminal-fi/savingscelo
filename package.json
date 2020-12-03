@@ -32,7 +32,6 @@
     "compile:contracts": "npx truffle compile && npx typechain --target=truffle-v5 'build/contracts/*.json' && npx typechain --target=web3-v1  'build/contracts/*.json'",
     "compile:ts": "npx tsc -b",
     "build": "npm run compile:contracts && npm run compile:ts",
-    "migrate": "npm run compile:contracts && npx tsc -b ./tsconfig.migrate.json && npx truffle migrate --reset",
     "test": "./testall.sh",
     "testone": "npm run compile:ts && npx truffle test --bail",
     "ganache": "npx celo-devchain --port 7545 --core v1"

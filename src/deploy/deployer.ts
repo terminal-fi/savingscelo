@@ -22,6 +22,7 @@ program
 	.parse()
 
 const networks: {[key: string]: string} = {
+	"ganache": "http://127.0.0.1:7545",
 	"alfajores": "https://alfajores-forno.celo-testnet.org",
 	"baklava": "https://baklava-forno.celo-testnet.org",
 }
@@ -79,14 +80,22 @@ async function main() {
 		throw new Error(`Unsupported network: ${opts.network}`)
 	}
 
-	const transport = await TransportNodeHid.open('')
-	const wallet = await newLedgerWalletWithSetup(
-		transport,
-		[0],
-		undefined,
-		AddressValidation.never)
+	let wallet
+	let accountAddr
+	if (opts.network !== "ganache") {
+		const transport = await TransportNodeHid.open('')
+		wallet = await newLedgerWalletWithSetup(
+			transport,
+			[0],
+			undefined,
+			AddressValidation.never)
+		accountAddr = wallet.getAccounts()[0]
+	}
 	const kit = newKit(networkURL, wallet)
-	kit.defaultAccount = wallet.getAccounts()[0]
+	if (!accountAddr) {
+		accountAddr = (await kit.web3.eth.personal.getAccounts())[0]
+	}
+	kit.defaultAccount = accountAddr
 
 	const contractSavingsCELO = await readOrDeployContract(
 		kit, opts.network,

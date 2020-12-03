@@ -23,7 +23,7 @@ contract('SavingsCELO', (accounts) => {
 	let savingsKit: SavingsKit
 
 	before( async () => {
-		savingsCELO = await SavingsCELO.deployed()
+		savingsCELO = await SavingsCELO.new()
 		savingsKit = new SavingsKit(kit, savingsCELO.address)
 	})
 

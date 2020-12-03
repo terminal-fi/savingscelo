@@ -26,7 +26,7 @@ contract('SavingsCELO', (accounts) => {
 	let voterV1: VoterV1
 
 	before( async () => {
-		savingsCELO = await SavingsCELO.deployed()
+		savingsCELO = await SavingsCELO.new()
 		const savingsCELOVoterV1 = await SavingsCELOVoterV1.new(savingsCELO.address)
 		await savingsCELO.authorizeVoterProxy(savingsCELOVoterV1.address, {from: owner})
 
