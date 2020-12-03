@@ -177,7 +177,12 @@ program
 		const voterV1 = await newVoterV1(kit, savingsKit)
 		const votedGroup = await voterV1.contract.methods.votedGroup().call()
 		console.info("Group:", votedGroup)
-		await sendTX(`VOTER:ACTIVATE-AND-VOTE`, await voterV1.activateAndVote())
+		const needsActivate = await voterV1.needsActivateAndVote()
+		if (!needsActivate) {
+			console.info("No new votes to activate or cast!")
+		} else {
+			await sendTX(`VOTER:ACTIVATE-AND-VOTE`, await voterV1.activateAndVote())
+		}
 	})
 
 program

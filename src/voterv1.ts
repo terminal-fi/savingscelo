@@ -70,4 +70,16 @@ export class VoterV1 {
 		const txo = this.contract.methods.activateAndVote(lesser, greater)
 		return toTransactionObject(this.kit, txo)
 	}
+
+	needsActivateAndVote = async() => {
+		const savingsCELOAddress = await this.contract.methods._proxy().call()
+		const election = await this.kit.contracts.getElection()
+		const mustActivate = await election.hasActivatablePendingVotes(savingsCELOAddress)
+		if (mustActivate) {
+			return true
+		}
+		const lockedGold = await this.kit.contracts.getLockedGold()
+		const toVote = await lockedGold.getAccountNonvotingLockedGold(savingsCELOAddress)
+		return toVote.gt(0)
+	}
 }
