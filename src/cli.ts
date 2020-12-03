@@ -85,8 +85,8 @@ function fmtValue(v: BigNumber.Value, toFixed?: number): string {
 }
 
 program
-	.command("deposit <CELO amount>")
-	.description("Deposit CELO to SavingsCELO contract.")
+	.command("deposit <amount>")
+	.description("Deposit CELO to SavingsCELO contract")
 	.action(async (value: string) => {
 		const {kit, savingsKit} = await initKit()
 		const goldToken = await kit.contracts.getGoldToken()
@@ -131,8 +131,10 @@ program
 	})
 
 program
-	.command("withdraw <CELO amount or ALL>")
-	.description("Start withdraw process to convert SavingsCELO back to CELO.")
+	.command("withdraw <amount>")
+	.description(
+		"Start withdraw process for given CELO <amount> worth of SavingsCELO tokens. " +
+		"Can use 'all' as <amount> to withdraw all SavingsCELO tokens")
 	.action(async (value: string) => {
 		const {kit, savingsKit} = await initKit()
 		let toWithdraw
@@ -147,7 +149,7 @@ program
 
 program
 	.command("withdraw:cancel <index>")
-	.description("Cancel withdraw process.")
+	.description("Cancel withdraw process")
 	.action(async (index: string) => {
 		const {kit, savingsKit} = await initKit()
 		const pendings = await savingsKit.pendingWithdrawals(kit.defaultAccount!)
@@ -156,7 +158,7 @@ program
 
 program
 	.command("withdraw:finish <index>")
-	.description("Finish withdraw process.")
+	.description("Finish withdraw process")
 	.action(async (index: string) => {
 		const {kit, savingsKit} = await initKit()
 		const pendings = await savingsKit.pendingWithdrawals(kit.defaultAccount!)
@@ -171,7 +173,7 @@ program
 
 program
 	.command("voter:activate")
-	.description("Activates pending votes and casts new votes for SavingsCELO. Anyone can call this method.")
+	.description("Activates pending votes and casts new votes for SavingsCELO. Anyone can call this method")
 	.action(async () => {
 		const {kit, savingsKit} = await initKit()
 		const voterV1 = await newVoterV1(kit, savingsKit)
@@ -186,8 +188,8 @@ program
 	})
 
 program
-	.command("voter:change-group <new group>")
-	.description("Changes voted group for SavingsCELO. Only _owner of the VoterV1 contract can call this method.")
+	.command("voter:change-group <address>")
+	.description("Changes voted group for SavingsCELO. Only _owner of the VoterV1 contract can call this method")
 	.action(async (newGroup: string) => {
 		const {kit, savingsKit} = await initKit()
 		const voterV1 = await newVoterV1(kit, savingsKit)
@@ -196,7 +198,7 @@ program
 
 program
 	.command("contracts")
-	.description("Display addresses for SavingsCELO contracts.")
+	.description("Display addresses for SavingsCELO contracts")
 	.action(async () => {
 		const {kit, savingsKit} = await initKit()
 		const voterAddr = await savingsKit.contract.methods._voter().call()
