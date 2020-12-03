@@ -46,14 +46,18 @@ contract SavingsCELOVoterV1 {
 		if (votedGroup != address(0)) {
 			uint256 pendingVotes = _election.getPendingVotesForGroupByAccount(votedGroup, address(_proxy));
 			uint256 activeVotes = _election.getActiveVotesForGroupByAccount(votedGroup, address(_proxy));
-			require(
-				_proxy.proxyRevokePending(
-					votedGroup, pendingVotes, lesserAfterPendingRevoke, greaterAfterPendingRevoke, votedGroupIndex),
-				"revokePending for voted group failed");
-			require(
-				_proxy.proxyRevokeActive(
-					votedGroup, pendingVotes, lesserAfterPendingRevoke, greaterAfterPendingRevoke, votedGroupIndex),
-				"revokeActive for voted group failed");
+			if (pendingVotes > 0) {
+				require(
+					_proxy.proxyRevokePending(
+						votedGroup, pendingVotes, lesserAfterPendingRevoke, greaterAfterPendingRevoke, votedGroupIndex),
+					"revokePending for voted group failed");
+			}
+			if (activeVotes > 0) {
+				require(
+					_proxy.proxyRevokeActive(
+						votedGroup, activeVotes, lesserAfterActiveRevoke, greaterAfterActiveRevoke, votedGroupIndex),
+					"revokeActive for voted group failed");
+			}
 		}
 		votedGroup = newGroup;
 	}

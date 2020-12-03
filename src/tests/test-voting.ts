@@ -98,6 +98,12 @@ contract('SavingsCELO', (accounts) => {
 			.sendAndWaitForReceipt({from: owner} as any)
 	})
 
+	it(`changeVotedGroup with 0 votes`, async () => {
+		await (await voterV1
+			.changeVotedGroup(vgroup))
+			.sendAndWaitForReceipt({from: owner} as any)
+	})
+
 	it(`withdraw pending and active votes`, async () => {
 		const goldToken = await kit.contracts.getGoldToken()
 		const election = await kit.contracts.getElection()
@@ -154,6 +160,16 @@ contract('SavingsCELO', (accounts) => {
 		activeVotes = await election.getActiveVotesForGroup(vgroup)
 		assert.isTrue(activeVotes.eq(toWei('400', 'ether')), `activeVotes: ${activeVotes}`)
 	})
+
+	it(`changeVotedGroup with pending and active votes`, async () => {
+		await (await voterV1
+			.changeVotedGroup(vgroup))
+			.sendAndWaitForReceipt({from: owner} as any)
+		const election = await kit.contracts.getElection()
+		const totalVotes = await election.getTotalVotesForGroup(vgroup)
+		assert.isTrue(totalVotes.eq(0), `totalVotes: ${totalVotes}`)
+	})
+
 })
 
 export {}

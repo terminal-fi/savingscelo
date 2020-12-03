@@ -7,6 +7,7 @@ import { AddressValidation, newLedgerWalletWithSetup } from "@celo/contractkit/l
 import TransportNodeHid from "@ledgerhq/hw-transport-node-hid"
 
 import { SavingsKit } from "./savingskit"
+import { newVoterV1 } from "./voterv1"
 
 import alfajoresSavingsCELO from "./deploy/alfajores.SavingsCELO.addr.json"
 import baklavaSavingsCELO from "./deploy/baklava.SavingsCELO.addr.json"
@@ -162,6 +163,26 @@ program
 			process.exit(1)
 		}
 		await sendTX(`WITHDRAW:FINISH ${index}`, await savingsKit.withdrawFinish(pendings, idx))
+	})
+
+program
+	.command("voter:activate")
+	.description("Activates pending votes and casts new votes for SavingsCELO. Anyone can call this method.")
+	.action(async () => {
+		const {kit, savingsKit} = await initKit()
+		const voterV1 = await newVoterV1(kit, savingsKit)
+		const votedGroup = await voterV1.contract.methods.votedGroup().call()
+		console.info("Group:", votedGroup)
+		await sendTX(`VOTER:ACTIVATE-AND-VOTE`, await voterV1.activateAndVote())
+	})
+
+program
+	.command("voter:change-group <new group>")
+	.description("Changes voted group for SavingsCELO. Only _owner of the VoterV1 contract can call this method.")
+	.action(async (newGroup: string) => {
+		const {kit, savingsKit} = await initKit()
+		const voterV1 = await newVoterV1(kit, savingsKit)
+		await sendTX(`VOTER:CHANGE-GROUP ${newGroup}`, await voterV1.changeVotedGroup(newGroup))
 	})
 
 async function main() {
