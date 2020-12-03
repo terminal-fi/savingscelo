@@ -1,6 +1,6 @@
 {
   "name": "savingscelo",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "SavingsCELO contracts and @celo/contractkit based SDK",
   "repository": {
     "url": "https://github.com/zviadm/savingscelo"
