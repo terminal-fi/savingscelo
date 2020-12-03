@@ -22,8 +22,8 @@ program
 	.option("-n --network <url>", "Celo network to connect to", "https://forno.celo.org")
 	.option("-f --from <address>", "Account address")
 	.option("-i --ledger-idx <index>",
-		"Use account from a Ledger hardware wallet. " +
-		"It will use standard celo address derivation path of: \"44'/52752'/0'/0\"")
+		"If provided, will use account from a Ledger hardware wallet. " +
+		"Uses standard celo address derivation path of: \"44'/52752'/0'/0\"")
 
 async function initKit() {
 	const opts = program.opts()
