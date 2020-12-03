@@ -5,9 +5,11 @@ import path from "path"
 import {ContractKit, newKit} from "@celo/contractkit"
 import { AddressValidation, newLedgerWalletWithSetup } from "@celo/contractkit/lib/wallets/ledger-wallet"
 import TransportNodeHid from "@ledgerhq/hw-transport-node-hid"
+import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
 
 import SavingsCELOJson from "../../build/contracts/SavingsCELO.json"
 import SavingsCELOVoterV1Json from "../../build/contracts/SavingsCELOVoterV1.json"
+import { SavingsKit } from "../savingskit"
 
 process.on('unhandledRejection', (reason, _promise) => {
 	// @ts-ignore
@@ -97,6 +99,15 @@ async function main() {
 		SavingsCELOVoterV1Json.bytecode +
 		kit.web3.eth.abi.encodeParameters(['address'], [contractSavingsCELO]).slice(2),
 	)
+
+	const savingsKit = new SavingsKit(kit, contractSavingsCELO)
+	const voterAddr = await savingsKit.contract.methods._voter().call()
+	if (voterAddr !== contractSavingsCELOVoterV1) {
+		console.info(`SavingsCELO authorizing voter: ${contractSavingsCELOVoterV1}...`)
+		const txo = toTransactionObject(kit, savingsKit.contract.methods.authorizeVoterProxy(contractSavingsCELOVoterV1))
+		await txo.sendAndWaitForReceipt()
+	}
+	console.info(`SavingsCELO VOTER:`, contractSavingsCELOVoterV1)
 }
 
 main()
