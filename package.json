@@ -1,6 +1,6 @@
 {
   "name": "savingscelo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SavingsCELO contracts and @celo/contractkit based SDK",
   "repository": {
     "url": "https://github.com/zviadm/savingscelo"
@@ -34,7 +34,7 @@
     "build": "npm run compile:contracts && npm run compile:ts",
     "test": "./testall.sh",
     "testone": "npm run compile:ts && npx truffle test --bail",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "rm -rf ./build ./dist ./types && npm run build",
 
     "ganache": "rm -f ./src/deploy/ganache.*.json && npx celo-devchain --port 7545 --core v1",
     "deploy": "npx ts-node ./src/deploy/deployer.ts"
