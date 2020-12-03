@@ -189,6 +189,16 @@ program
 		await sendTX(`VOTER:CHANGE-GROUP ${newGroup}`, await voterV1.changeVotedGroup(newGroup))
 	})
 
+program
+	.command("contracts")
+	.description("Display addresses for SavingsCELO contracts.")
+	.action(async () => {
+		const {kit, savingsKit} = await initKit()
+		const voterAddr = await savingsKit.contract.methods._voter().call()
+		console.info(`SavingsCELO       :`, savingsKit.contractAddress)
+		console.info(`SavingsCELO _voter:`, voterAddr)
+	})
+
 async function main() {
 	await program.parseAsync(process.argv)
 }

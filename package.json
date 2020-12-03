@@ -35,7 +35,6 @@
     "test": "./testall.sh",
     "testone": "npm run compile:ts && npx truffle test --bail",
     "prepublishOnly": "rm -rf ./build ./dist ./types && npm run build",
-
     "ganache": "rm -f ./src/deploy/ganache.*.json && npx celo-devchain --port 7545 --core v1",
     "deploy": "npx ts-node ./src/deploy/deployer.ts"
   },
