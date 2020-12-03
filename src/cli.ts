@@ -9,6 +9,7 @@ import TransportNodeHid from "@ledgerhq/hw-transport-node-hid"
 import { SavingsKit } from "./savingskit"
 
 import alfajoresSavingsCELO from "./deploy/alfajores.SavingsCELO.addr.json"
+import baklavaSavingsCELO from "./deploy/baklava.SavingsCELO.addr.json"
 
 process.on('unhandledRejection', (reason, _promise) => {
 	// @ts-ignore
@@ -53,6 +54,9 @@ async function initKit() {
 	case 44787:
 		contractAddr = alfajoresSavingsCELO.address
 		break
+	case 62320:
+		contractAddr = baklavaSavingsCELO.address
+		break
 	default:
 		throw new Error(`Unsupport networkId: ${networkId}`)
 	}
@@ -88,7 +92,7 @@ program
 				'APPROVE SavingsCELO',
 				goldToken.approve(savingsKit.contractAddress, new BigNumber(1e35).toFixed(0)))
 		}
-		await sendTX('DEPOSIT', savingsKit.deposit(toDeposit))
+		await sendTX(`DEPOSIT: ${value} CELO`, savingsKit.deposit(toDeposit))
 	})
 
 async function printPendingWithdrawals(kit: ContractKit, savingsKit: SavingsKit) {
@@ -112,18 +116,27 @@ program
 	.description("Display SavingsCELO balance, and pending withdrawals")
 	.action(async () => {
 		const {kit, savingsKit} = await initKit()
+		const goldToken = await kit.contracts.getGoldToken()
+		const celoBalance = await goldToken.balanceOf(kit.defaultAccount!)
 		const savingsBalance = await savingsKit.contract.methods.balanceOf(kit.defaultAccount!).call()
 		const savingsAsCELO = await savingsKit.contract.methods.savingsToCELO(savingsBalance).call()
-		console.info(`SavingsCELO: ${fmtValue(savingsBalance)} (~= ${fmtValue(savingsAsCELO, 2)} CELO)`)
+		console.info(`CELO:        ${fmtValue(celoBalance)} CELO`)
+		console.info(`SavingsCELO: ${fmtValue(savingsBalance)} SavingsCELO (~= ${fmtValue(savingsAsCELO, 2)} CELO)`)
 		printPendingWithdrawals(kit, savingsKit)
 	})
 
 program
-	.command("withdraw:start <SavingsCELO amount>")
+	.command("withdraw <CELO amount or ALL>")
 	.description("Start withdraw process to convert SavingsCELO back to CELO.")
 	.action(async (value: string) => {
 		const {kit, savingsKit} = await initKit()
-		await sendTX('WITHDRAW', await savingsKit.withdrawStart(toWei(value, 'ether')))
+		let toWithdraw
+		if (value.toLowerCase() === "all") {
+			toWithdraw = await savingsKit.contract.methods.balanceOf(kit.defaultAccount!).call()
+		} else {
+			toWithdraw = await savingsKit.contract.methods.celoToSavings(toWei(value, 'ether')).call()
+		}
+		await sendTX(`WITHDRAW: ${value} CELO`, await savingsKit.withdrawStart(toWithdraw))
 		printPendingWithdrawals(kit, savingsKit)
 	})
 
@@ -133,7 +146,7 @@ program
 	.action(async (index: string) => {
 		const {kit, savingsKit} = await initKit()
 		const pendings = await savingsKit.pendingWithdrawals(kit.defaultAccount!)
-		await sendTX('WITHDRAW:Cancel', await savingsKit.withdrawCancel(pendings, Number.parseInt(index)))
+		await sendTX(`WITHDRAW:CANCEL ${index}`, await savingsKit.withdrawCancel(pendings, Number.parseInt(index)))
 	})
 
 program
@@ -148,7 +161,7 @@ program
 			console.error(`Pending withdrawal not yet ready! Available on: ${pendingReady.toLocaleString()}`)
 			process.exit(1)
 		}
-		await sendTX('WITHDRAW:Finish', await savingsKit.withdrawFinish(pendings, idx))
+		await sendTX(`WITHDRAW:FINISH ${index}`, await savingsKit.withdrawFinish(pendings, idx))
 	})
 
 async function main() {
