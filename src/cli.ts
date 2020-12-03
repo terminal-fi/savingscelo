@@ -8,16 +8,16 @@ import TransportNodeHid from "@ledgerhq/hw-transport-node-hid"
 
 import { SavingsKit } from "./savingskit"
 
+import alfajoresSavingsCELO from "./deploy/alfajores.SavingsCELO.addr.json"
+
 process.on('unhandledRejection', (reason, _promise) => {
 	// @ts-ignore
 	console.error('Unhandled Rejection at:', reason.stack || reason)
 	process.exit(0)
 })
 
-// TODO(zviad): add support for Ledger.
 program
-	.option("-n --network <url>", "Celo network to connect to", "http://127.0.0.1:7545")
-	.option("--contract <address>", "SavingsCELO contract address", "0x231eDcC0010ECA04796f00b6D6137d66F9FF2818")
+	.option("-n --network <url>", "Celo network to connect to", "https://forno.celo.org")
 	.option("-f --from <address>", "Account address")
 	.option("-i --ledger-idx <index>",
 		"Use account from a Ledger hardware wallet. " +
@@ -47,7 +47,16 @@ async function initKit() {
 		console.info(`Ledger Account: ${fromAddr}`)
 	}
 	const kit = newKit(opts.network, wallet)
-	const savingsKit = new SavingsKit(kit, opts.contract)
+	const networkId = await kit.web3.eth.getChainId()
+	let contractAddr
+	switch (networkId) {
+	case 44787:
+		contractAddr = alfajoresSavingsCELO.address
+		break
+	default:
+		throw new Error(`Unsupport networkId: ${networkId}`)
+	}
+	const savingsKit = new SavingsKit(kit, contractAddr)
 	kit.defaultAccount = fromAddr
 	return {kit, savingsKit}
 }
