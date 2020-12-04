@@ -8,6 +8,8 @@ import "./interfaces/ILockedGold.sol";
 import "./interfaces/IElection.sol";
 import "./interfaces/IVoterProxy.sol";
 
+// SavingsCELO voter contract. VoterV1 supports voting for only one group
+// at a time.
 contract SavingsCELOVoterV1 {
 	using SafeMath for uint256;
 
@@ -36,6 +38,16 @@ contract SavingsCELOVoterV1 {
 		_owner = newOwner;
 	}
 
+	/// Changes voted group. This call revokes all current votes for currently voted group.
+	/// votedGroupIndex is the index of votedGroup in SavingsCELO votes. This is expected to be 0 since
+	/// SavingsCELO is supposed to be voting only for one group.
+	///
+	/// lesser.../greater... parameters are needed to perform Election.revokePending and Election.revokeActive
+	/// calls. See Election contract for more details.
+	///
+	/// NOTE: changeVotedGroup can be used to clear out all votes even if SavingsCELO is voting for multiple
+	/// groups. This can be useful if SavingsCELO is in a weird voting state before VoterV1 contract is installed
+	/// as the voter contract.
 	function changeVotedGroup(
 		address newGroup,
 		uint256 votedGroupIndex,
@@ -62,6 +74,9 @@ contract SavingsCELOVoterV1 {
 		votedGroup = newGroup;
 	}
 
+	/// Activates any activatable votes and also casts new votes if there is new locked CELO in
+	/// SavingsCELO contract. Anyone can call this method, and it is expected to be called regularly to make
+	/// sure all new locked CELO is deployed to earn rewards.
 	function activateAndVote(
 		address lesser,
 		address greater
