@@ -146,7 +146,12 @@ program
 			process.exit(1)
 		}
 		const {kit, savingsKit} = await initKit()
-		const toTransfer = await savingsKit.contract.methods.celoToSavings(toWei(opts.amount as string, 'ether')).call()
+		let toTransfer
+		if (opts.amount.toLowerCase() === "all") {
+			toTransfer = await savingsKit.contract.methods.balanceOf(kit.defaultAccount!).call()
+		} else {
+			toTransfer = await savingsKit.contract.methods.celoToSavings(toWei(opts.amount as string, 'ether')).call()
+		}
 		const txo = toTransactionObject(kit, savingsKit.contract.methods.transfer(opts.to, toTransfer))
 		await sendTX(
 			`TRANSFER: ${new BigNumber(toTransfer).div(1e18).toString()} SavingsCELO ` +
