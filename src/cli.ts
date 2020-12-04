@@ -5,6 +5,7 @@ import BigNumber from "bignumber.js"
 import { CeloTransactionObject, ContractKit, newKit } from "@celo/contractkit"
 import { AddressValidation, newLedgerWalletWithSetup } from "@celo/contractkit/lib/wallets/ledger-wallet"
 import TransportNodeHid from "@ledgerhq/hw-transport-node-hid"
+import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
 
 import { SavingsKit } from "./savingskit"
 import { newVoterV1 } from "./voterv1"
@@ -43,7 +44,7 @@ async function initKit() {
 				AddressValidation.never)
 		} catch (e) {
 			console.error(`Check if the Ledger is connected and if the Celo app is open!`)
-			throw e
+			process.exit(1)
 		}
 		fromAddr = wallet.getAccounts()[0]
 		console.info(`Ledger Account: ${fromAddr}`)
@@ -128,6 +129,28 @@ program
 		console.info(`CELO:        ${fmtValue(celoBalance)} CELO`)
 		console.info(`SavingsCELO: ${fmtValue(savingsBalance)} SavingsCELO (~= ${fmtValue(savingsAsCELO, 2)} CELO)`)
 		printPendingWithdrawals(kit, savingsKit)
+	})
+
+program
+	.command("transfer")
+	.option("--to <address>", "Address to transfer SavingsCELO tokens to")
+	.option("--amount <amount>", "Amount to transfer given in CELO. To transfer all tokens use 'all' as amount")
+	.description("Transfer SavingsCELO tokens to another address")
+	.action(async (opts) => {
+		if (!opts.to) {
+			console.error(`Must provide destination address using --to flag.`)
+			process.exit(1)
+		}
+		if (!opts.amount) {
+			console.error(`Must provide amount to transfer using --amount flag.`)
+			process.exit(1)
+		}
+		const {kit, savingsKit} = await initKit()
+		const toTransfer = await savingsKit.contract.methods.celoToSavings(toWei(opts.amount as string, 'ether')).call()
+		const txo = toTransactionObject(kit, savingsKit.contract.methods.transfer(opts.to, toTransfer))
+		await sendTX(
+			`TRANSFER: ${new BigNumber(toTransfer).div(1e18).toString()} SavingsCELO ` +
+			`(~${opts.amount} CELO) => ${opts.to}`, txo)
 	})
 
 program
