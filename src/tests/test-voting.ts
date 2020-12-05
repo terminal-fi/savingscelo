@@ -6,6 +6,7 @@ import { mineToNextEpoch } from "celo-devchain"
 import { SavingsKit } from "../savingskit"
 import { newVoterV1, VoterV1 } from "../voterv1";
 import { SavingsCELOInstance } from "../../types/truffle-contracts";
+import { createAccounts } from "./utils";
 
 const SavingsCELO = artifacts.require("SavingsCELO");
 const SavingsCELOVoterV1 = artifacts.require("SavingsCELOVoterV1");
@@ -24,7 +25,7 @@ contract('SavingsCELO', (accounts) => {
 	let savingsKit: SavingsKit
 	let voterV1: VoterV1
 
-	before( async () => {
+	before(async () => {
 		savingsCELO = await SavingsCELO.new()
 		const savingsCELOVoterV1 = await SavingsCELOVoterV1.new(savingsCELO.address)
 		await savingsCELO.authorizeVoterProxy(savingsCELOVoterV1.address, {from: owner})
@@ -34,26 +35,16 @@ contract('SavingsCELO', (accounts) => {
 	})
 
 	it(`create accounts`, async () => {
-		const goldToken = await kit.contracts.getGoldToken()
-		locker = await web3.eth.personal.newAccount("")
-		vgroup = await web3.eth.personal.newAccount("")
-		validator0 = await web3.eth.personal.newAccount("")
-		for (const account of [locker, vgroup, validator0]) {
-			await web3.eth.personal.unlockAccount(account, "", 0)
-			await goldToken
-				.transfer(account, toWei('1', 'ether'))
-				.sendAndWaitForReceipt({from: owner} as any)
-		}
-
-		await goldToken
-			.transfer(locker, toWei('1000', 'ether'))
-			.sendAndWaitForReceipt({from: owner} as any)
-		await goldToken
-			.transfer(vgroup, toWei('10000', 'ether'))
-			.sendAndWaitForReceipt({from: owner} as any)
-		await goldToken
-			.transfer(validator0, toWei('10000', 'ether'))
-			.sendAndWaitForReceipt({from: owner} as any)
+		[
+			locker,
+			vgroup,
+			validator0,
+		] = await createAccounts(
+			kit, owner, [
+				toWei('1001', 'ether'),
+				toWei('10001', 'ether'),
+				toWei('10001', 'ether'),
+			])
 	})
 
 	it(`register validator group`, async () => {

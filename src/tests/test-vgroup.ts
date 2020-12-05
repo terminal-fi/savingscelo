@@ -2,9 +2,10 @@ import { toWei } from "web3-utils"
 import { newKit } from "@celo/contractkit"
 import { addressToPublicKey } from '@celo/utils/lib/signatureUtils'
 import BigNumber from "bignumber.js";
-import { increaseTime, mineToNextEpoch, Provider } from "celo-devchain"
+import { increaseTime, Provider } from "celo-devchain"
 import { SavingsCELOInstance } from "../../types/truffle-contracts";
 import { SavingsCELOVGroupInstance } from "../../types/truffle-contracts";
+import { createAccounts } from "./utils";
 
 const SavingsCELO = artifacts.require("SavingsCELO");
 const SavingsCELOVGroup = artifacts.require("SavingsCELOVGroup");
@@ -29,20 +30,16 @@ contract('SavingsCELOVGroup', (accounts) => {
 	})
 
 	it(`create accounts`, async () => {
-		const goldToken = await kit.contracts.getGoldToken()
-		validator0 = await web3.eth.personal.newAccount("")
-		vgroupVoteSigner = await web3.eth.personal.newAccount("")
-		vgroupValidatorSigner = await web3.eth.personal.newAccount("")
-		for (const account of [
-			[validator0, '10001'],
-			[vgroupVoteSigner, '1'],
-			[vgroupValidatorSigner, '1'],
-		]) {
-			await web3.eth.personal.unlockAccount(account[0], "", 0)
-			await goldToken
-				.transfer(account[0], toWei(account[1], 'ether'))
-				.sendAndWaitForReceipt({from: owner} as any)
-		}
+		[
+			validator0,
+			vgroupVoteSigner,
+			vgroupValidatorSigner,
+		] = await createAccounts(
+			kit, owner, [
+				toWei('10001', 'ether'),
+				toWei('1', 'ether'),
+				toWei('1', 'ether'),
+			])
 	})
 
 	it(`register validator group`, async () => {

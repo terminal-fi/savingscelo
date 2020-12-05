@@ -3,7 +3,8 @@ import { newKit } from "@celo/contractkit"
 import BigNumber from "bignumber.js";
 import { increaseTime, Provider } from "celo-devchain"
 import { SavingsKit } from "../savingskit";
-import { Deposited, SavingsCELOInstance, WithdrawFinished } from "../../types/truffle-contracts/SavingsCELO";
+import { Deposited, SavingsCELOInstance } from "../../types/truffle-contracts/SavingsCELO";
+import { createAccounts } from "./utils";
 
 const SavingsCELO = artifacts.require("SavingsCELO");
 
@@ -22,27 +23,20 @@ contract('SavingsCELO', (accounts) => {
 	let savingsCELO: SavingsCELOInstance
 	let savingsKit: SavingsKit
 
-	before( async () => {
+	before(async () => {
 		savingsCELO = await SavingsCELO.new()
 		savingsKit = new SavingsKit(kit, savingsCELO.address)
 	})
 
 	it(`create accounts`, async () => {
-		const goldToken = await kit.contracts.getGoldToken()
-		a0 = await web3.eth.personal.newAccount("")
-		a1 = await web3.eth.personal.newAccount("")
-		for (const account of [a0, a1]) {
-			await web3.eth.personal.unlockAccount(account, "", 0)
-			await goldToken
-				.transfer(account, toWei('1', 'ether'))
-				.sendAndWaitForReceipt({from: owner} as any)
-		}
-		await goldToken
-			.transfer(a0, toLock)
-			.sendAndWaitForReceipt({from: owner} as any)
-		await goldToken
-			.transfer(a1, new BigNumber(toDonate1).plus(toDonate2).toFixed(0))
-			.sendAndWaitForReceipt({from: owner} as any)
+		[
+			a0,
+			a1,
+		] = await createAccounts(
+			kit, owner, [
+				new BigNumber(toWei('1', 'ether')).plus(toLock).toFixed(0),
+				new BigNumber(toWei('1', 'ether')).plus(toDonate1).plus(toDonate2).toFixed(0),
+			])
 	})
 
 	it(`simple deposit`, async () => {
