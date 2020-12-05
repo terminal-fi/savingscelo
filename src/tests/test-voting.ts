@@ -5,8 +5,7 @@ import BigNumber from "bignumber.js";
 import { mineToNextEpoch } from "celo-devchain"
 import { SavingsKit } from "../savingskit"
 import { newVoterV1, VoterV1 } from "../voterv1";
-import { SavingsCELOInstance, SavingsCELOVoterV1Instance } from "../../types/truffle-contracts";
-import { SavingsCELOVoterV1 } from "../../types/web3-v1-contracts/SavingsCELOVoterV1";
+import { SavingsCELOInstance } from "../../types/truffle-contracts";
 
 const SavingsCELO = artifacts.require("SavingsCELO");
 const SavingsCELOVoterV1 = artifacts.require("SavingsCELOVoterV1");
