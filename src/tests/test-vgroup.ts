@@ -15,7 +15,6 @@ after(() => {
 })
 contract('SavingsCELOVGroup', (accounts) => {
 	const owner = accounts[0]
-	let locker: string
 	let validator0: string
 	let vgroupVoteSigner: string
 	let vgroupValidatorSigner: string
@@ -31,12 +30,10 @@ contract('SavingsCELOVGroup', (accounts) => {
 
 	it(`create accounts`, async () => {
 		const goldToken = await kit.contracts.getGoldToken()
-		locker = await web3.eth.personal.newAccount("")
 		validator0 = await web3.eth.personal.newAccount("")
 		vgroupVoteSigner = await web3.eth.personal.newAccount("")
 		vgroupValidatorSigner = await web3.eth.personal.newAccount("")
 		for (const account of [
-			[locker, '1000'],
 			[validator0, '10001'],
 			[vgroupVoteSigner, '1'],
 			[vgroupValidatorSigner, '1'],
@@ -109,7 +106,30 @@ contract('SavingsCELOVGroup', (accounts) => {
 	})
 
 	it(`exchange and donate cUSD rewards`, async () => {
-		// TODO(zviad): Test cUSD reward transfers.
+		const goldToken = await kit.contracts.getGoldToken()
+		const stableToken = await kit.contracts.getStableToken()
+		const exchange = await kit.contracts.getExchange()
+
+		const toExchange = toWei('100', 'ether')
+		await goldToken
+			.increaseAllowance(exchange.address, toExchange)
+			.sendAndWaitForReceipt({from: owner} as any)
+		await exchange
+			.sellGold(toExchange, 0)
+			.sendAndWaitForReceipt({from: owner} as any)
+		const cUSDAmt = await stableToken.balanceOf(owner)
+		assert(cUSDAmt.gt(0), `cUSD: ${cUSDAmt}`)
+		await stableToken
+			.transfer(savingsVGroup.address, cUSDAmt.toFixed(0))
+			.sendAndWaitForReceipt({from: owner} as any)
+
+		let savingsCELOAmt = await goldToken.balanceOf(savingsCELO.address)
+		assert(savingsCELOAmt.eq(0), `CELO: ${savingsCELOAmt}`)
+		await savingsVGroup.exchangeAndDonateEpochRewards(cUSDAmt.toFixed(0), 0)
+		savingsCELOAmt = await goldToken.balanceOf(savingsCELO.address)
+		assert(savingsCELOAmt.gt(0), `CELO: ${savingsCELOAmt}`)
+		const vgroupCUSDAmt = await stableToken.balanceOf(savingsVGroup.address)
+		assert(vgroupCUSDAmt.eq(0), `CUSD: ${vgroupCUSDAmt}`)
 	})
 
 	it(`revoke votes, unlock and withdraw CELO`, async () => {
@@ -134,12 +154,12 @@ contract('SavingsCELOVGroup', (accounts) => {
 		await savingsVGroup.withdrawLockedGold(0, {from: owner})
 
 		const vgroupLockedCELO = await lockedGold.getAccountTotalLockedGold(savingsVGroup.address)
-		assert(vgroupLockedCELO.eq(0), `locked CELO: ${vgroupLockedCELO.toNumber()}`)
+		assert(vgroupLockedCELO.eq(0), `locked CELO: ${vgroupLockedCELO}`)
 		let vgroupCELO = await goldToken.balanceOf(savingsVGroup.address)
-		assert(vgroupCELO.eq(toWei('10000', 'ether')), `CELO: ${vgroupCELO.toNumber()}`)
+		assert(vgroupCELO.eq(toWei('10000', 'ether')), `CELO: ${vgroupCELO}`)
 		await savingsVGroup.withdraw(vgroupCELO.toFixed(0), {from: owner})
 		vgroupCELO = await goldToken.balanceOf(savingsVGroup.address)
-		assert(vgroupCELO.eq(0), `CELO: ${vgroupCELO.toNumber()}`)
+		assert(vgroupCELO.eq(0), `CELO: ${vgroupCELO}`)
 	})
 })
 

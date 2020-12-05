@@ -101,13 +101,13 @@ contract SavingsCELOVGroup {
 	/// Anyone can call this function. Since cUSD rewards per epoch are significantly smaller
 	/// compared to Exchange buckets, it is safe to allow anyone to call this function and
 	/// convert cUSD -> CELO at market rate at any point.
-	function ExchangeAndDonateEpochRewards(
+	function exchangeAndDonateEpochRewards(
 		uint256 amount,
 		uint256 minExchangeAmount) external {
 		require(
 			_stableToken.approve(address(_exchange), amount),
 			"unable to approve stableToken transfer");
-		uint256 celoAmount = _exchange.sell(amount, minExchangeAmount, true);
+		uint256 celoAmount = _exchange.sell(amount, minExchangeAmount, false);
 		require(
 			_goldToken.transfer(_savingsCELO, celoAmount),
 			"transfer of CELO failed");
