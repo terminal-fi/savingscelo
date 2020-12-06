@@ -6,9 +6,10 @@ import { AddressValidation, newLedgerWalletWithSetup } from "@celo/contractkit/l
 import TransportNodeHid from "@ledgerhq/hw-transport-node-hid"
 import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
 import { SavingsCELOVGroup } from "../../types/web3-v1-contracts/SavingsCELOVGroup"
+import { sendTX } from "../cli-utils"
 
 import savingsCELOVGroupJson from "../../build/contracts/SavingsCELOVGroup.json"
-import { sendTX } from "../cli-utils"
+import baklavaSavingsCELOVGroup from "../deploy/baklava.SavingsCELOVGroup.addr.json"
 
 process.on('unhandledRejection', (reason, _promise) => {
 	// @ts-ignore
@@ -58,9 +59,9 @@ async function initKit() {
 	// case 44787:
 	// 	contractAddr = alfajoresSavingsCELO.address
 	// 	break
-	// case 62320:
-	// 	contractAddr = baklavaSavingsCELO.address
-	// 	break
+	case 62320:
+		contractAddr = baklavaSavingsCELOVGroup.address
+		break
 	default:
 		throw new Error(`Unsupport networkId: ${networkId}`)
 	}
@@ -88,6 +89,15 @@ program
 	})
 
 program
+	.command("withdraw <amount>")
+	.description("Withdraw CELO back to the owner")
+	.action(async (value: string) => {
+		const {kit, savingsVG} = await initKit()
+		const txo = toTransactionObject(kit, savingsVG.methods.withdraw(toWei(value, 'ether')))
+		await sendTX(`WITHDRAW: ${value} CELO`, txo)
+	})
+
+program
 	.command("authorize:vote")
 	.option("--signer <address>", "New vote signer address")
 	.option("--signature <signature>", "Proof-of-possession signature")
@@ -112,7 +122,6 @@ program
 		const txo = toTransactionObject(kit, savingsVG.methods.authorizeValidatorSigner(opts.signer, pop.v, pop.r, pop.s))
 		await sendTX(`AUTHORIZE:VALIDATOR ${opts.signer}`, txo)
 	})
-
 
 program
 	.command("contracts")
