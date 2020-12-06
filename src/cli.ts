@@ -2,7 +2,7 @@
 import { toWei } from "web3-utils"
 import { program } from "commander"
 import BigNumber from "bignumber.js"
-import { CeloTransactionObject, ContractKit, newKit } from "@celo/contractkit"
+import { ContractKit, newKit } from "@celo/contractkit"
 import { AddressValidation, newLedgerWalletWithSetup } from "@celo/contractkit/lib/wallets/ledger-wallet"
 import TransportNodeHid from "@ledgerhq/hw-transport-node-hid"
 import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
@@ -12,6 +12,7 @@ import { newVoterV1 } from "./voterv1"
 
 import alfajoresSavingsCELO from "./deploy/alfajores.SavingsCELO.addr.json"
 import baklavaSavingsCELO from "./deploy/baklava.SavingsCELO.addr.json"
+import { fmtValue, sendTX } from "./cli-utils"
 
 process.on('unhandledRejection', (reason, _promise) => {
 	// @ts-ignore
@@ -50,12 +51,12 @@ async function initKit() {
 		console.info(`Ledger Account: ${fromAddr}`)
 	}
 	const kit = newKit(opts.network, wallet)
+	kit.defaultAccount = fromAddr
 	const networkId = await kit.web3.eth.getChainId()
 	let contractAddr
 	switch (networkId) {
 	case 1337:
-		const ganacheSavingsCELO = require("./deploy/ganache.SavingsCELO.addr.json")
-		contractAddr = ganacheSavingsCELO.address
+		contractAddr = require("./deploy/ganache.SavingsCELO.addr.json").address
 		break
 	case 44787:
 		contractAddr = alfajoresSavingsCELO.address
@@ -67,22 +68,7 @@ async function initKit() {
 		throw new Error(`Unsupport networkId: ${networkId}`)
 	}
 	const savingsKit = new SavingsKit(kit, contractAddr)
-	kit.defaultAccount = fromAddr
 	return {kit, savingsKit}
-}
-
-async function sendTX(name: string, tx: CeloTransactionObject<unknown>) {
-	console.info(`Sending TX: ${name} ...`)
-	const result = await tx.send()
-	const hash = await result.getHash()
-	console.info(`Waiting TX: ${hash} ...`)
-	const receipt = await result.waitReceipt()
-	console.info(`DONE`)
-	return receipt
-}
-
-function fmtValue(v: BigNumber.Value, toFixed?: number): string {
-	return new BigNumber(v).div(1e18).toFixed(toFixed || 18)
 }
 
 program
