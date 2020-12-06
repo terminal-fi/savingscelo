@@ -4,7 +4,6 @@
  */
 
 module.exports = {
-  migrations_directory: "./build/migrations",
   mocha: {},
 
   networks: {

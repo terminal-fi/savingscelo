@@ -28,8 +28,9 @@ const networks: {[key: string]: string} = {
 	"baklava": "https://baklava-forno.celo-testnet.org",
 }
 
+// Relative path to the deploy folder changes depending on if it is run directly or using ts-node.
 const contractsPath = __filename.endsWith(".ts") ?
-	path.join(__dirname, "..", "..", "src", "deploy") :
+	__dirname :
 	path.join(__dirname, "..", "..", "..", "src", "deploy")
 
 function contractAddress(
@@ -52,7 +53,7 @@ function storeContractAddress(
 		JSON.stringify({address: contractAddress}))
 }
 
-async function readOrDeployContract(
+async function readAddressOrDeployContract(
 	kit: ContractKit,
 	network: string,
 	contractName: string,
@@ -98,18 +99,18 @@ async function main() {
 	}
 	kit.defaultAccount = accountAddr
 
-	const contractSavingsCELO = await readOrDeployContract(
+	const contractSavingsCELO = await readAddressOrDeployContract(
 		kit, opts.network,
 		"SavingsCELO",
 		SavingsCELOJson.bytecode,
 	)
-	const contractSavingsCELOVoterV1 = await readOrDeployContract(
+	const contractSavingsCELOVoterV1 = await readAddressOrDeployContract(
 		kit, opts.network,
 		"SavingsCELOVoterV1",
 		SavingsCELOVoterV1Json.bytecode +
 		kit.web3.eth.abi.encodeParameters(['address'], [contractSavingsCELO]).slice(2),
 	)
-	const contractSavingsCELOVGroup = await readOrDeployContract(
+	await readAddressOrDeployContract(
 		kit, opts.network,
 		"SavingsCELOVGroup",
 		SavingsCELOVGroupJson.bytecode +
