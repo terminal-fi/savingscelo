@@ -19,6 +19,7 @@
     "@types/ledgerhq__hw-transport-node-hid": "^4.22.2",
     "celo-devchain": "^1.0.10",
     "truffle": "^5.1.54",
+    "truffle-flattener": "^1.5.0",
     "truffle-typings": "^1.0.8",
     "typechain": "^4.0.0",
     "typescript": "^4.0.5"
