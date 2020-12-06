@@ -19,13 +19,13 @@ module.exports = {
   compilers: {
     solc: {
       version: "0.6.2",
-      // settings: {
-      //   optimizer: {
-      //     enabled: true,
-      //     runs: 200
-      //   }
-      //   evmVersion: "byzantium"
-      // }
+      settings: {
+        optimizer: {
+          enabled: false,
+          // runs: 200,
+        },
+        evmVersion: "istanbul",
+      }
     },
   },
 };
