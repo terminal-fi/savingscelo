@@ -37,6 +37,7 @@ contract SavingsCELOVGroup {
 		require(
 			_accounts.createAccount(),
 			"createAccount failed");
+		_accounts.setName("SavingsCELO - Group");
 	}
 
 	modifier ownerOnly() {
