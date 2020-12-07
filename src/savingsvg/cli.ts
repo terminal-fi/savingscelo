@@ -6,7 +6,8 @@ import { AddressValidation, newLedgerWalletWithSetup } from "@celo/contractkit/l
 import TransportNodeHid from "@ledgerhq/hw-transport-node-hid"
 import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
 import { SavingsCELOVGroup } from "../../types/web3-v1-contracts/SavingsCELOVGroup"
-import { sendTX } from "../cli-utils"
+import { fmtValue, sendTX } from "../cli-utils"
+import { SavingsKit } from "../savingskit"
 
 import savingsCELOVGroupJson from "../../build/contracts/SavingsCELOVGroup.json"
 import baklavaSavingsCELOVGroup from "../deploy/baklava.SavingsCELOVGroup.addr.json"
@@ -95,6 +96,31 @@ program
 		const {kit, savingsVG} = await initKit()
 		const txo = toTransactionObject(kit, savingsVG.methods.withdraw(toWei(value, 'ether')))
 		await sendTX(`WITHDRAW: ${value} CELO`, txo)
+	})
+
+program
+	.command("claim-rewards")
+	.description("Exchange cUSD rewards to CELO and send it back to the SavingsCELO contract")
+	.action(async () => {
+		const {kit, savingsVG} = await initKit()
+		const exchange = await kit.contracts.getExchange()
+		const stableToken = await kit.contracts.getStableToken()
+		const cUSDBalance = await stableToken.balanceOf(savingsVG.options.address)
+		if (cUSDBalance.eq(0)) {
+			console.info(`cUSD balance is 0, nothing to claim.`)
+			return
+		}
+		const expectedAmt = await exchange.getBuyTokenAmount(cUSDBalance, false)
+		const maxSlippage = 0.05 // allow up to 5% slippage.
+		const txo = toTransactionObject(
+			kit,
+			savingsVG.methods.exchangeAndDonateEpochRewards(
+				cUSDBalance.toFixed(0),
+				expectedAmt.multipliedBy(1-maxSlippage).toFixed(0)))
+		await sendTX(`EXCHANGE-AND-DONATE: ${fmtValue(cUSDBalance)} cUSD => ${fmtValue(expectedAmt)} CELO`, txo)
+		const savingsCELOAddr = await savingsVG.methods._savingsCELO().call()
+		const savingsKit = new SavingsKit(kit, savingsCELOAddr)
+		await sendTX(`DEPOSIT`, savingsKit.deposit(0))
 	})
 
 program
