@@ -9,7 +9,7 @@ import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
 
 import SavingsCELOJson from "../../build/contracts/SavingsCELO.json"
 import SavingsCELOVoterV1Json from "../../build/contracts/SavingsCELOVoterV1.json"
-import SavingsCELOVGroupJson from "../../build/contracts/SavingsCELOVgroup.json"
+import SavingsCELOVGroupJson from "../../build/contracts/SavingsCELOVGroup.json"
 import { SavingsKit } from "../savingskit"
 
 process.on('unhandledRejection', (reason, _promise) => {
