@@ -48,6 +48,13 @@ export class SavingsKit {
 		if (votedGroups.length > 0) {
 			const revokeGroup = votedGroups[votedGroups.length - 1]
 			const votes = await election.getVotesForGroupByAccount(this.contractAddress, revokeGroup)
+			const totalVotes = votes.pending.plus(votes.active)
+			if (toRevoke.gt(totalVotes)) {
+				throw new Error(
+					`Can not withdraw requested amount in a single transaction. ` +
+					`Current maximum withdrawable CELO in a single transaction is: `+
+					`${nonvoting.plus(totalVotes).div(1e18).toFixed(18)} CELO!`)
+			}
 			const toRevokePending = BigNumber.minimum(toRevoke, votes.pending)
 			pendingRevoke = await election.findLesserAndGreaterAfterVote(votes.group, toRevokePending.negated())
 			activeRevoke = await election.findLesserAndGreaterAfterVote(votes.group, toRevoke.negated())
