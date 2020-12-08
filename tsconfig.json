@@ -10,6 +10,7 @@
 		"esModuleInterop": true,
 		"resolveJsonModule": true,
 		"declaration": true,
+		"forceConsistentCasingInFileNames": true,
 		"outDir": "./dist"
 	},
 	"include": ["./src/**/*.ts", "./types/**/*.ts"],
