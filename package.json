@@ -17,6 +17,7 @@
     "@typechain/truffle-v5": "^3.0.0",
     "@typechain/web3-v1": "^1.0.0",
     "@types/ledgerhq__hw-transport-node-hid": "^4.22.2",
+    "axios": "^0.21.0",
     "celo-devchain": "^1.0.10",
     "truffle": "^5.1.54",
     "truffle-flattener": "^1.5.0",
