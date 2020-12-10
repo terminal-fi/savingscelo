@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity >= 0.6.0 < 0.8.0;
+pragma solidity 0.6.2;
 
 interface IVoterProxy {
 	function proxyVote(address, uint256, address, address) external returns (bool);
