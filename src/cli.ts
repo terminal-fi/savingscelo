@@ -113,7 +113,7 @@ program
 		const savingsBalance = await savingsKit.contract.methods.balanceOf(kit.defaultAccount!).call()
 		const savingsAsCELO = await savingsKit.contract.methods.savingsToCELO(savingsBalance).call()
 		console.info(`CELO:        ${fmtValue(celoBalance)} CELO`)
-		console.info(`SavingsCELO: ${fmtValue(savingsBalance)} SavingsCELO (~= ${fmtValue(savingsAsCELO, 2)} CELO)`)
+		console.info(`SavingsCELO: ~${fmtValue(savingsAsCELO, 2)} CELO (${fmtValue(savingsBalance)} SavingsCELO)`)
 		printPendingWithdrawals(kit, savingsKit)
 	})
 
@@ -140,8 +140,8 @@ program
 		}
 		const txo = toTransactionObject(kit, savingsKit.contract.methods.transfer(opts.to, toTransfer))
 		await sendTX(
-			`TRANSFER: ${new BigNumber(toTransfer).div(1e18).toString()} SavingsCELO ` +
-			`(~${opts.amount} CELO) => ${opts.to}`, txo)
+			`TRANSFER: ~${opts.amount} CELO ` +
+			`(${new BigNumber(toTransfer).div(1e18).toString()} SavingsCELO) => ${opts.to}`, txo)
 	})
 
 program
