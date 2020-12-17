@@ -118,6 +118,17 @@ contract SavingsCELO is ERC20 {
 		VoteValue value) voterProxyOnly external returns (bool) {
 		return _governance.vote(proposalId, index, value);
 	}
+	function proxyGovernanceUpvote(
+		uint256 proposalId,
+		uint256 lesser,
+		uint256 greater) voterProxyOnly external returns (bool) {
+		return _governance.upvote(proposalId, lesser, greater);
+	}
+	function proxyGovernanceRevokeUpvote(
+		uint256 lesser,
+		uint256 greater) voterProxyOnly external returns (bool) {
+		return _governance.revokeUpvote(lesser, greater);
+	}
 
 	/// Deposits CELO to the contract in exchange of SavingsCELO tokens. CELO tokens are transfered
 	/// using ERC20.transferFrom call, thus caller must call .approve or .increaseAllowance first to
