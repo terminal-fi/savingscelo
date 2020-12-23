@@ -86,6 +86,7 @@ contract SavingsCELO is ERC20 {
         _;
     }
 
+	// Proxy functions for validator election voting.
 	function proxyVote(
 		address group,
 		uint256 value,
@@ -112,6 +113,10 @@ contract SavingsCELO is ERC20 {
 		uint256 index) voterProxyOnly external returns (bool) {
 		return _election.revokePending(group, value, lesser, greater, index);
 	}
+
+	// Proxy functions for governance voting. It is extremely unlikely that these
+	// functions will ever be used, but they are provided just in case there is some idea
+	// in the future for voterProxy contract to utilize them.
 	function proxyGovernanceVote(
 		uint256 proposalId,
 		uint256 index,

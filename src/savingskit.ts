@@ -22,6 +22,17 @@ export class SavingsKit {
 			savingsCELOJson.abi as any, contractAddress) as unknown as SavingsCELO
 	}
 
+	public infiniteApprove = async (from: string) => {
+		const goldToken = await this.kit.contracts.getGoldToken()
+		const allowance = await goldToken.allowance(
+			from, this.contractAddress)
+		if (allowance.gt(1e34)) {
+			return null
+		} else {
+			return goldToken.approve(this.contractAddress, new BigNumber(1e35).toFixed(0))
+		}
+	}
+
 	public deposit = (celoAmount: BigNumber.Value) => {
 		const txo = this.contract.methods.deposit(new BigNumber(celoAmount).toFixed(0))
 		return toTransactionObject(this.kit, txo)

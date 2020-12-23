@@ -76,14 +76,11 @@ program
 	.description("Deposit CELO to SavingsCELO contract")
 	.action(async (value: string) => {
 		const {kit, savingsKit} = await initKit()
-		const goldToken = await kit.contracts.getGoldToken()
-		const allowance = await goldToken.allowance(kit.defaultAccount!, savingsKit.contractAddress)
-		const toDeposit = toWei(value, 'ether')
-		if (allowance.lt(toDeposit)) {
-			await sendTX(
-				'APPROVE SavingsCELO',
-				goldToken.approve(savingsKit.contractAddress, new BigNumber(1e35).toFixed(0)))
+		const approveTX = await savingsKit.infiniteApprove(kit.defaultAccount!)
+		if (approveTX) {
+			await sendTX('APPROVE SavingsCELO', approveTX)
 		}
+		const toDeposit = toWei(value, 'ether')
 		await sendTX(`DEPOSIT: ${value} CELO`, savingsKit.deposit(toDeposit))
 	})
 
