@@ -13,17 +13,18 @@ sCELO tokens in circulation are equivalent to each other.
 
 ## SavingsCELO.sol
 
-SavingsCELO is the primary contract that manages deposits and withdrawals and implements ERC20 standard for sCELO tokens.
+SavingsCELO is the primary contract that manages deposits and withdrawals and implements the
+ERC20 standard for the sCELO tokens.
 
-SavingsCELO contract is un-upgradable, but it does have an admin/owner with extra priveleges:
+SavingsCELO contract is un-upgradable, but it does have an admin/owner with extra privileges:
 * Owner can authorize a contract that can vote on behalf of the Locked CELO that is stored in the contract.
 * Owner can also authorize a standard vote signer. This functionality exists mainly as an emergency hatch, in case
-there is some backwards incompatible change in core Celo contracts that breaks regular proxy voting.
-* Owner does not have any privileges to transfer out any of the CELO locked in the contract. However, malicious owner
-could potentially block withdrawals through complex steps of continously creating new governance proposals and voting
+there is some backwards-incompatible change in core Celo contracts that breaks regular proxy voting.
+* Owner does not have any privileges to transfer out any of the CELO locked in the contract. However, a malicious owner
+could potentially block withdrawals through complex steps of continuously creating new governance proposals and voting
 for those proposals using CELO locked in the contract. Constant voting on these Governance proposals would essentially block
 withdrawals.
-* Final step for finalizing SavingsCELO project is to transfer its ownership to GovernanceProxy (i.e. regular Celo governance).
+* Final step for finalizing the SavingsCELO project is to transfer its ownership to GovernanceProxy (i.e. regular Celo governance).
 
 ## SavingsCELOVoterV1.sol
 
@@ -33,14 +34,14 @@ and does not support any governance voting.
 Owner/admin of SavingsCELOVoterV1 is called the "Group Manager" and is responsible for choosing the group that
 SavingsCELO votes for.
 * By default, the voted group will be the deployed SavingsCELOVGroup contract.
-* Group Manager can change the voted group in case of an emergency (i.e. if currently voted group gets slashed, or if there
+* Group Manager can change the voted group in case of an emergency (i.e. if the currently voted group gets slashed, or if there
 is no longer enough CELO in the contract to keep the group elected)
 
 ## SavingsCELOVGroup.sol
 
-SavingsCELOVGroup implements special type of validator group. Owner of this group is the same "Group Manager".
+SavingsCELOVGroup implements a special type of validator group. The owner of this group is the same "Group Manager".
 
-Group Manager has following priveleges:
+Group Manager has the following privileges:
 * Can deposit/withdraw/lock/unlock CELO for the group.
 * Can authorize a vote signer.
 * Can authorize a validator signer to manage group members and its commission.
