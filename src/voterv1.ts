@@ -1,5 +1,6 @@
 import { Address, ContractKit } from "@celo/contractkit"
 import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
+import BigNumber from "bignumber.js"
 
 import savingsCELOVoterV1Json from "../build/contracts/SavingsCELOVoterV1.json"
 import { SavingsCELOVoterV1 } from "../types/web3-v1-contracts/SavingsCELOVoterV1"
@@ -59,13 +60,9 @@ export class VoterV1 {
 	}
 
 	activateAndVote = async() => {
-		const savingsCELOAddress = await this.contract.methods._proxy().call()
 		const votedGroup = await this.contract.methods.votedGroup().call()
-
 		const election = await this.kit.contracts.getElection()
-		const lockedGold = await this.kit.contracts.getLockedGold()
-
-		const toVote = await lockedGold.getAccountNonvotingLockedGold(savingsCELOAddress)
+		const toVote = await this.calcToVote()
 		const {lesser, greater} = await election.findLesserAndGreaterAfterVote(votedGroup, toVote)
 		const txo = this.contract.methods.activateAndVote(lesser, greater)
 		return toTransactionObject(this.kit, txo)
@@ -78,8 +75,19 @@ export class VoterV1 {
 		if (mustActivate) {
 			return true
 		}
+		const toVote = await this.calcToVote()
+		return toVote.gt(0)
+	}
+
+	private calcToVote = async() => {
+		const savingsCELOAddress = await this.contract.methods._proxy().call()
+		const votedGroup = await this.contract.methods.votedGroup().call()
+		const election = await this.kit.contracts.getElection()
 		const lockedGold = await this.kit.contracts.getLockedGold()
 		const toVote = await lockedGold.getAccountNonvotingLockedGold(savingsCELOAddress)
-		return toVote.gt(0)
+		const groupVotes = await election.getValidatorGroupVotes(votedGroup)
+		return BigNumber.minimum(
+			toVote,
+			BigNumber.maximum(groupVotes.capacity.minus(groupVotes.votes), 0))
 	}
 }

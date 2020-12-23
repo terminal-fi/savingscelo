@@ -89,9 +89,18 @@ contract SavingsCELOVoterV1 {
 		}
 		uint256 toVote = _lockedGold.getAccountNonvotingLockedGold(address(_proxy));
 		if (toVote > 0) {
-			require(
-				_proxy.proxyVote(votedGroup, toVote, lesser, greater),
-				"casting votes for voted group failed");
+			uint256 maxVotes = _election.getNumVotesReceivable(votedGroup);
+			uint256 totalVotes = _election.getTotalVotesForGroup(votedGroup);
+			if (maxVotes <= totalVotes) {
+				toVote = 0;
+			} else if (maxVotes - totalVotes < toVote) {
+				toVote = maxVotes - totalVotes;
+			}
+			if (toVote > 0) {
+				require(
+					_proxy.proxyVote(votedGroup, toVote, lesser, greater),
+					"casting votes for voted group failed");
+			}
 		}
 	}
 }
