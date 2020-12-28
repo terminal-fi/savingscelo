@@ -29,9 +29,9 @@ contract SavingsCELOVoterV1 {
 	}
 
 	modifier ownerOnly() {
-        require(_owner == msg.sender, "caller must be the registered _owner");
-        _;
-    }
+		require(_owner == msg.sender, "caller must be the registered _owner");
+		_;
+	}
 
 	function changeOwner(address newOwner) ownerOnly external {
 		require(newOwner != address(0x0), "must provide valid new owner");

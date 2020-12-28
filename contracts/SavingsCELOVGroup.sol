@@ -41,9 +41,9 @@ contract SavingsCELOVGroup {
 	}
 
 	modifier ownerOnly() {
-        require(_owner == msg.sender, "caller must be the registered _owner");
-        _;
-    }
+		require(_owner == msg.sender, "caller must be the registered _owner");
+		_;
+	}
 
 	/// Changes owner of the contract that has authorizeVoteSigner privileges.
 	function changeOwner(address newOwner) ownerOnly external {

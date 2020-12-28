@@ -80,7 +80,7 @@ contract('SavingsCELO - Governance', (accounts) => {
 				.plus(cfg.governance.stageDurations.Referendum)
 				.plus(cfg.governance.stageDurations.Execution).toNumber())
 
-    	const governance = await kit.contracts.getGovernance()
+		const governance = await kit.contracts.getGovernance()
 		const proposal = await new ProposalBuilder(kit).build()
 		await governance
 			.propose(proposal, 'URL')
