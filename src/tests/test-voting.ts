@@ -20,7 +20,6 @@ contract('SavingsCELO - Voting', (accounts) => {
 	let locker: string
 	let vgroup: string
 	let validator0: string
-	let maxVoter: string
 
 	let savingsCELO: SavingsCELOInstance
 	let savingsKit: SavingsKit
@@ -41,7 +40,6 @@ contract('SavingsCELO - Voting', (accounts) => {
 			locker,
 			vgroup,
 			validator0,
-			maxVoter,
 		] = await createAccounts(
 			kit, owner, [
 				toWei('1001', 'ether'),
@@ -164,40 +162,41 @@ contract('SavingsCELO - Voting', (accounts) => {
 		assert.isTrue(totalVotes.eq(0), `totalVotes: ${totalVotes}`)
 	})
 
+	// TODO(zviad): This test doesn't work since it requires setting up another validator group
+	// that is voted in to cause maximum voting cap to kick in.
 	// it(`exceed voting capacity`, async () => {
 	// 	const election = await kit.contracts.getElection()
-	// 	const accountsC = await kit.contracts.getAccounts()
 	// 	const goldToken = await kit.contracts.getGoldToken()
 	// 	const lockedGold = await kit.contracts.getLockedGold()
-	// 	await accountsC
-	// 		.createAccount()
-	// 		.sendAndWaitForReceipt({from: maxVoter} as any)
-	// 	const nonvotingCELO = await lockedGold.getAccountNonvotingLockedGold(savingsCELO.address)
+
 	// 	while (true) {
 	// 		const groupVotes = await election.getValidatorGroupVotes(vgroup)
-	// 		const maxToVote = groupVotes.capacity
-	// 		if (maxToVote.lt(nonvotingCELO)) {
+	// 		const toTransfer = groupVotes.capacity.plus(1e18)
+	// 		await goldToken
+	// 			.transfer(locker, toTransfer.toFixed(0))
+	// 			.sendAndWaitForReceipt({from: owner} as any)
+	// 		await savingsCELO.deposit(toTransfer.toFixed(0), {from: locker})
+
+	// 		const nonvotingCELO = await lockedGold.getAccountNonvotingLockedGold(savingsCELO.address)
+	// 		const groupVotesAfter = await election.getValidatorGroupVotes(vgroup)
+	// 		console.debug(`celo in contract: ${nonvotingCELO.div(1e18)}, capacitiy: ${groupVotesAfter.capacity.div(1e18)}`)
+	// 		if (nonvotingCELO.gt(groupVotesAfter.capacity)) {
 	// 			break
 	// 		}
-	// 		await goldToken
-	// 			.transfer(maxVoter, maxToVote.toFixed(0))
-	// 			.sendAndWaitForReceipt({from: owner} as any)
-	// 		await lockedGold
-	// 			.lock()
-	// 			.sendAndWaitForReceipt({from: maxVoter, value: maxToVote.toFixed(0)} as any)
-	// 		await (await election
-	// 			.vote(vgroup, maxToVote))
-	// 			.sendAndWaitForReceipt({from: maxVoter} as any)
 	// 	}
-	// 	// vgroup now should have less capacitiy left for votes. make sure voteAndActivate still works
+
+	// 	// vgroup now should have more locked CELO than vote capacity. make sure voteAndActivate still works
 	// 	// and doesn't fail.
 	// 	await (await voterV1.activateAndVote())
 	// 		.sendAndWaitForReceipt({from: locker} as any)
-
 	// 	const nonvotingCELOAfter = await lockedGold.getAccountNonvotingLockedGold(savingsCELO.address)
 	// 	assert.isTrue(nonvotingCELOAfter.gt(0), `non voting: ${nonvotingCELOAfter}`)
-	// 	const needsActivateAndVote = await voterV1.needsActivateAndVote()
-	// 	assert.equal(needsActivateAndVote, false)
+
+	// 	// Withdraw CELO to avoid inflating total locked CELO during subsequent test runs.
+	// 	const toWithdraw = await savingsKit.contract.methods.balanceOf(locker).call()
+	// 	await (await savingsKit
+	// 		.withdrawStart(toWithdraw))
+	// 		.sendAndWaitForReceipt({from: locker} as any)
 	// })
 
 })
