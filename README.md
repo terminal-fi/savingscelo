@@ -21,8 +21,8 @@ SavingsCELO contract is un-upgradable, but it does have an admin/owner with extr
 * Owner can also authorize a standard vote signer. This functionality exists mainly as an emergency hatch, in case
 there is some backwards-incompatible change in core Celo contracts that breaks regular proxy voting.
 * Owner does not have any privileges to transfer out any of the CELO locked in the contract. However, a malicious owner
-could potentially block withdrawals through complex steps of continuously creating new governance proposals and voting
-for those proposals using CELO locked in the contract. Constant voting on these Governance proposals would essentially block
+could potentially block withdrawals through complex steps of continuously creating new governance proposals and upvoting
+those proposals using CELO locked in the contract. Constant upvoting on these Governance proposals would essentially block
 withdrawals.
 * Final step for finalizing the SavingsCELO project is to transfer its ownership to GovernanceProxy (i.e. regular Celo governance).
 
