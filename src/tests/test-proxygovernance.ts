@@ -6,7 +6,7 @@ import { SavingsCELOInstance } from "../../types/truffle-contracts/SavingsCELO";
 import { createAccounts } from "./utils";
 import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
 import { ProposalBuilder } from '@celo/contractkit/lib/governance'
-import { VoteValue } from '@celo/contractkit/lib/wrappers/Governance'
+import { ProposalStage, VoteValue } from '@celo/contractkit/lib/wrappers/Governance'
 
 const SavingsCELO = artifacts.require("SavingsCELO");
 
@@ -14,7 +14,7 @@ const kit = newKit("http://127.0.0.1:7545")
 after(() => {
 	kit.stop()
 })
-contract('SavingsCELO', (accounts) => {
+contract('SavingsCELO - Governance', (accounts) => {
 	const owner = accounts[0]
 	let owner2: string
 	let proxyVoter: string
@@ -72,6 +72,14 @@ contract('SavingsCELO', (accounts) => {
 			.sendAndWaitForReceipt({from: proxyVoter} as any)
 
 		const cfg = await kit.getNetworkConfig()
+		// This should expire all existing proposals.
+		await increaseTime(
+			kit.web3.currentProvider as Provider,
+			cfg.governance.dequeueFrequency
+				.plus(cfg.governance.stageDurations.Approval)
+				.plus(cfg.governance.stageDurations.Referendum)
+				.plus(cfg.governance.stageDurations.Execution).toNumber())
+
     	const governance = await kit.contracts.getGovernance()
 		const proposal = await new ProposalBuilder(kit).build()
 		await governance
@@ -83,6 +91,7 @@ contract('SavingsCELO', (accounts) => {
 		const queue = await governance.getQueue()
 		assert.lengthOf(queue, 1)
 		const proposalID = queue[0].proposalID
+		console.debug(`proposed: ${proposalID}, upvoting...`)
 		await toTransactionObject(kit,
 			savingsKit.contract.methods.proxyGovernanceUpvote(
 				proposalID.toFixed(0),
@@ -92,6 +101,7 @@ contract('SavingsCELO', (accounts) => {
 		assert.lengthOf(queue2, 1)
 		assert.isTrue(queue2[0].upvotes.eq(toWei('1000', 'ether')), `upvotes: ${queue2[0].upvotes}`)
 
+		console.debug(`proposed: ${proposalID}, revoking upvote...`)
 		await toTransactionObject(kit,
 			savingsKit.contract.methods.proxyGovernanceRevokeUpvote(0, 0))
 			.sendAndWaitForReceipt({from: proxyVoter} as any)
@@ -103,6 +113,7 @@ contract('SavingsCELO', (accounts) => {
 		await governance
 			.dequeueProposalsIfReady()
 			.sendAndWaitForReceipt({from: owner} as any)
+		console.debug(`approving: ${proposalID}...`)
 		const multiSigAddress = await governance.getApprover()
 		const governanceApproverMultiSig = await kit.contracts.getMultiSig(multiSigAddress)
 		const govTX = await governance.approve(proposalID)
@@ -111,28 +122,22 @@ contract('SavingsCELO', (accounts) => {
 			.sendAndWaitForReceipt({from: owner} as any)
 		await increaseTime(kit.web3.currentProvider as Provider, cfg.governance.stageDurations.Approval.toNumber())
 
-		// await toTransactionObject(kit,
-		// 	savingsKit.contract.methods.proxyGovernanceVote(
-		// 		proposalID.toFixed(0),
-		// 		0,
-		// 		Object.keys(VoteValue).indexOf(VoteValue.Yes)))
-		// 	.sendAndWaitForReceipt({from: proxyVoter} as any)
-		// let pVotes = await governance.getVotes(proposalID)
-		// assert.isTrue(pVotes.Yes.eq(toWei('1000', 'ether')))
-		// await toTransactionObject(kit,
-		// 	savingsKit.contract.methods.proxyGovernanceVote(
-		// 		proposalID.toFixed(0),
-		// 		0,
-		// 		Object.keys(VoteValue).indexOf(VoteValue.No)))
-		// 	.sendAndWaitForReceipt({from: proxyVoter} as any)
-		// assert.isTrue(pVotes.No.eq(toWei('1000', 'ether')))
-		// await toTransactionObject(kit,
-		// 	savingsKit.contract.methods.proxyGovernanceVote(
-		// 		proposalID.toFixed(0),
-		// 		0,
-		// 		Object.keys(VoteValue).indexOf(VoteValue.Abstain)))
-		// 	.sendAndWaitForReceipt({from: proxyVoter} as any)
-		// assert.isTrue(pVotes.Abstain.eq(toWei('1000', 'ether')))
+		console.debug(`voting for: ${proposalID}...`)
+		const deq = await governance.getDequeue()
+		const pidx = deq.findIndex((e) => e.eq(proposalID))
+		assert.notEqual(pidx, -1, `Deque: ${deq}`)
+		for (const v of ["Yes", "No", "Abstain"]) {
+			await toTransactionObject(kit,
+				savingsKit.contract.methods.proxyGovernanceVote(
+					proposalID.toFixed(0),
+					pidx,
+					Object.keys(VoteValue).indexOf(v)))
+				.sendAndWaitForReceipt({from: proxyVoter} as any)
+			const pVotes = await governance.getVotes(proposalID)
+			assert.isTrue(
+				pVotes[v as "Yes" | "No" | "Abstain"].eq(toWei('1000', 'ether')),
+				`${v} votes: ${pVotes}`)
+		}
 
 		await increaseTime(kit.web3.currentProvider as Provider, cfg.governance.stageDurations.Referendum.toNumber())
 		await (await governance

@@ -15,7 +15,7 @@ const kit = newKit("http://127.0.0.1:7545")
 after(() => {
 	kit.stop()
 })
-contract('SavingsCELO', (accounts) => {
+contract('SavingsCELO - Voting', (accounts) => {
 	const owner = accounts[0]
 	let locker: string
 	let vgroup: string
@@ -164,41 +164,41 @@ contract('SavingsCELO', (accounts) => {
 		assert.isTrue(totalVotes.eq(0), `totalVotes: ${totalVotes}`)
 	})
 
-	it(`exceed voting capacity`, async () => {
-		const election = await kit.contracts.getElection()
-		const accountsC = await kit.contracts.getAccounts()
-		const goldToken = await kit.contracts.getGoldToken()
-		const lockedGold = await kit.contracts.getLockedGold()
-		await accountsC
-			.createAccount()
-			.sendAndWaitForReceipt({from: maxVoter} as any)
-		const nonvotingCELO = await lockedGold.getAccountNonvotingLockedGold(savingsCELO.address)
-		while (true) {
-			const groupVotes = await election.getValidatorGroupVotes(vgroup)
-			const maxToVote = groupVotes.capacity
-			if (maxToVote.lt(nonvotingCELO)) {
-				break
-			}
-			await goldToken
-				.transfer(maxVoter, maxToVote.toFixed(0))
-				.sendAndWaitForReceipt({from: owner} as any)
-			await lockedGold
-				.lock()
-				.sendAndWaitForReceipt({from: maxVoter, value: maxToVote.toFixed(0)} as any)
-			await (await election
-				.vote(vgroup, maxToVote))
-				.sendAndWaitForReceipt({from: maxVoter} as any)
-		}
-		// vgroup now should have less capacitiy left for votes. make sure voteAndActivate still works
-		// and doesn't fail.
-		await (await voterV1.activateAndVote())
-			.sendAndWaitForReceipt({from: locker} as any)
+	// it(`exceed voting capacity`, async () => {
+	// 	const election = await kit.contracts.getElection()
+	// 	const accountsC = await kit.contracts.getAccounts()
+	// 	const goldToken = await kit.contracts.getGoldToken()
+	// 	const lockedGold = await kit.contracts.getLockedGold()
+	// 	await accountsC
+	// 		.createAccount()
+	// 		.sendAndWaitForReceipt({from: maxVoter} as any)
+	// 	const nonvotingCELO = await lockedGold.getAccountNonvotingLockedGold(savingsCELO.address)
+	// 	while (true) {
+	// 		const groupVotes = await election.getValidatorGroupVotes(vgroup)
+	// 		const maxToVote = groupVotes.capacity
+	// 		if (maxToVote.lt(nonvotingCELO)) {
+	// 			break
+	// 		}
+	// 		await goldToken
+	// 			.transfer(maxVoter, maxToVote.toFixed(0))
+	// 			.sendAndWaitForReceipt({from: owner} as any)
+	// 		await lockedGold
+	// 			.lock()
+	// 			.sendAndWaitForReceipt({from: maxVoter, value: maxToVote.toFixed(0)} as any)
+	// 		await (await election
+	// 			.vote(vgroup, maxToVote))
+	// 			.sendAndWaitForReceipt({from: maxVoter} as any)
+	// 	}
+	// 	// vgroup now should have less capacitiy left for votes. make sure voteAndActivate still works
+	// 	// and doesn't fail.
+	// 	await (await voterV1.activateAndVote())
+	// 		.sendAndWaitForReceipt({from: locker} as any)
 
-		const nonvotingCELOAfter = await lockedGold.getAccountNonvotingLockedGold(savingsCELO.address)
-		assert.isTrue(nonvotingCELOAfter.gt(0), `non voting: ${nonvotingCELOAfter}`)
-		const needsActivateAndVote = await voterV1.needsActivateAndVote()
-		assert.equal(needsActivateAndVote, false)
-	})
+	// 	const nonvotingCELOAfter = await lockedGold.getAccountNonvotingLockedGold(savingsCELO.address)
+	// 	assert.isTrue(nonvotingCELOAfter.gt(0), `non voting: ${nonvotingCELOAfter}`)
+	// 	const needsActivateAndVote = await voterV1.needsActivateAndVote()
+	// 	assert.equal(needsActivateAndVote, false)
+	// })
 
 })
 

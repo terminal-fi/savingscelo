@@ -12,7 +12,7 @@ const kit = newKit("http://127.0.0.1:7545")
 after(() => {
 	kit.stop()
 })
-contract('SavingsCELO', (accounts) => {
+contract('SavingsCELO - Deposits', (accounts) => {
 	const owner = accounts[0]
 	let a0: string
 	let a1: string
