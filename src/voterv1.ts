@@ -1,9 +1,9 @@
 import { Address, ContractKit } from "@celo/contractkit"
-import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
+import { toTransactionObject } from "@celo/connect"
 import BigNumber from "bignumber.js"
 
 import savingsCELOVoterV1Json from "../build/contracts/SavingsCELOVoterV1.json"
-import { SavingsCELOVoterV1 } from "../types/web3-v1-contracts/SavingsCELOVoterV1"
+import { SavingsCeloVoterV1 } from "../types/web3-v1-contracts/SavingsCELOVoterV1"
 import { SavingsKit } from "./savingskit"
 
 export async function newVoterV1(kit: ContractKit, savingsKit: SavingsKit) {
@@ -17,14 +17,14 @@ export async function newVoterV1(kit: ContractKit, savingsKit: SavingsKit) {
 }
 
 export class VoterV1 {
-	public readonly contract: SavingsCELOVoterV1
+	public readonly contract: SavingsCeloVoterV1
 
 	constructor(
 		private kit: ContractKit,
 		private savingsKit: SavingsKit,
 		public contractAddress: Address) {
 		this.contract = new kit.web3.eth.Contract(
-			savingsCELOVoterV1Json.abi as any, contractAddress) as unknown as SavingsCELOVoterV1
+			savingsCELOVoterV1Json.abi as any, contractAddress) as unknown as SavingsCeloVoterV1
 	}
 
 	changeVotedGroup = async(newGroup: Address) => {
@@ -56,7 +56,7 @@ export class VoterV1 {
 			pendingRevoke.greater,
 			activeRevoke.lesser,
 			activeRevoke.greater)
-		return toTransactionObject(this.kit, txo)
+		return toTransactionObject(this.kit.connection, txo)
 	}
 
 	activateAndVote = async() => {
@@ -65,7 +65,7 @@ export class VoterV1 {
 		const toVote = await this.calcToVote()
 		const {lesser, greater} = await election.findLesserAndGreaterAfterVote(votedGroup, toVote)
 		const txo = this.contract.methods.activateAndVote(lesser, greater)
-		return toTransactionObject(this.kit, txo)
+		return toTransactionObject(this.kit.connection, txo)
 	}
 
 	needsActivateAndVote = async() => {

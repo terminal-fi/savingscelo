@@ -1,9 +1,9 @@
 import { Address, ContractKit } from "@celo/contractkit"
-import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
+import { toTransactionObject } from "@celo/connect"
 import { PendingWithdrawal } from "@celo/contractkit/lib/wrappers/LockedGold"
 
 import BigNumber from "bignumber.js"
-import { SavingsCELO } from "../types/web3-v1-contracts/SavingsCELO"
+import { SavingsCelo } from "../types/web3-v1-contracts/SavingsCELO"
 
 import savingsCELOJson from "../build/contracts/SavingsCELO.json"
 
@@ -13,13 +13,13 @@ import savingsCELOJson from "../build/contracts/SavingsCELO.json"
  * be used directly. See implementation of .deposit() wrapper as an example.
  */
 export class SavingsKit {
-	public readonly contract: SavingsCELO
+	public readonly contract: SavingsCelo
 
 	constructor(
 		private kit: ContractKit,
 		public readonly contractAddress: Address) {
 		this.contract = new kit.web3.eth.Contract(
-			savingsCELOJson.abi as any, contractAddress) as unknown as SavingsCELO
+			savingsCELOJson.abi as any, contractAddress) as unknown as SavingsCelo
 	}
 
 	public infiniteApprove = async (from: string) => {
@@ -35,7 +35,7 @@ export class SavingsKit {
 
 	public deposit = (celoAmount: BigNumber.Value) => {
 		const txo = this.contract.methods.deposit(new BigNumber(celoAmount).toFixed(0))
-		return toTransactionObject(this.kit, txo)
+		return toTransactionObject(this.kit.connection, txo)
 	}
 
 	public withdrawStart = async (savingsAmount: BigNumber.Value) => {
@@ -77,7 +77,7 @@ export class SavingsKit {
 			pendingRevoke.greater,
 			activeRevoke.lesser,
 			activeRevoke.greater)
-		return toTransactionObject(this.kit, txo)
+		return toTransactionObject(this.kit.connection, txo)
 	}
 
 	public pendingWithdrawals = async (account: Address): Promise<PendingWithdrawal[]> => {
@@ -93,7 +93,7 @@ export class SavingsKit {
 		index: number) => {
 		const indexGlobal = await this.withdrawIndexGlobal(pendings, index)
 		const txo = this.contract.methods.withdrawFinish(index, indexGlobal)
-		return toTransactionObject(this.kit, txo)
+		return toTransactionObject(this.kit.connection, txo)
 	}
 
 	public withdrawCancel = async(
@@ -101,7 +101,7 @@ export class SavingsKit {
 		index: number) => {
 		const indexGlobal = await this.withdrawIndexGlobal(pendings, index)
 		const txo = this.contract.methods.withdrawCancel(index, indexGlobal)
-		return toTransactionObject(this.kit, txo)
+		return toTransactionObject(this.kit.connection, txo)
 	}
 
 	public withdrawIndexGlobal = async(pendings: PendingWithdrawal[], index: number) => {

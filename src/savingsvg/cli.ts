@@ -2,10 +2,10 @@
 import { toWei } from "web3-utils"
 import { program } from "commander"
 import { newKit } from "@celo/contractkit"
-import { AddressValidation, newLedgerWalletWithSetup } from "@celo/contractkit/lib/wallets/ledger-wallet"
+import { AddressValidation, newLedgerWalletWithSetup } from "@celo/wallet-ledger"
 import TransportNodeHid from "@ledgerhq/hw-transport-node-hid"
-import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
-import { SavingsCELOVGroup } from "../../types/web3-v1-contracts/SavingsCELOVGroup"
+import { toTransactionObject } from "@celo/connect"
+import { SavingsCelovGroup } from "../../types/web3-v1-contracts/SavingsCELOVGroup"
 import { fmtValue, sendTX } from "../cli-utils"
 import { SavingsKit } from "../savingskit"
 
@@ -67,7 +67,7 @@ async function initKit() {
 		throw new Error(`Unsupport networkId: ${networkId}`)
 	}
 	const savingsVG = new kit.web3.eth.Contract(
-		savingsCELOVGroupJson.abi as any, contractAddr) as unknown as SavingsCELOVGroup
+		savingsCELOVGroupJson.abi as any, contractAddr) as unknown as SavingsCelovGroup
 	return {kit, savingsVG}
 }
 
@@ -76,7 +76,9 @@ program
 	.description("Lock CELO")
 	.action(async (value: string) => {
 		const {kit, savingsVG} = await initKit()
-		const txo = toTransactionObject(kit, savingsVG.methods.lockGold(toWei(value, 'ether')))
+		const txo = toTransactionObject(
+			kit.connection,
+			savingsVG.methods.lockGold(toWei(value, 'ether')))
 		await sendTX(`LOCK: ${value} CELO`, txo)
 	})
 
@@ -85,7 +87,9 @@ program
 	.description("Unlock CELO")
 	.action(async (value: string) => {
 		const {kit, savingsVG} = await initKit()
-		const txo = toTransactionObject(kit, savingsVG.methods.unlockGold(toWei(value, 'ether')))
+		const txo = toTransactionObject(
+			kit.connection,
+			savingsVG.methods.unlockGold(toWei(value, 'ether')))
 		await sendTX(`UNLOCK: ${value} CELO`, txo)
 	})
 
@@ -94,7 +98,9 @@ program
 	.description("Withdraw CELO back to the owner")
 	.action(async (value: string) => {
 		const {kit, savingsVG} = await initKit()
-		const txo = toTransactionObject(kit, savingsVG.methods.withdraw(toWei(value, 'ether')))
+		const txo = toTransactionObject(
+			kit.connection,
+			savingsVG.methods.withdraw(toWei(value, 'ether')))
 		await sendTX(`WITHDRAW: ${value} CELO`, txo)
 	})
 
@@ -113,7 +119,7 @@ program
 		const expectedAmt = await exchange.getBuyTokenAmount(cUSDBalance, false)
 		const maxSlippage = 0.05 // allow up to 5% slippage.
 		const txo = toTransactionObject(
-			kit,
+			kit.connection,
 			savingsVG.methods.exchangeAndDonateEpochRewards(
 				cUSDBalance.toFixed(0),
 				expectedAmt.multipliedBy(1-maxSlippage).toFixed(0)))
@@ -132,7 +138,9 @@ program
 		const {kit, savingsVG} = await initKit()
 		const accounts = await kit.contracts.getAccounts()
 		const pop = accounts.parseSignatureOfAddress(savingsVG.options.address, opts.signer, opts.signature)
-		const txo = toTransactionObject(kit, savingsVG.methods.authorizeVoteSigner(opts.signer, pop.v, pop.r, pop.s))
+		const txo = toTransactionObject(
+			kit.connection,
+			savingsVG.methods.authorizeVoteSigner(opts.signer, pop.v, pop.r, pop.s))
 		await sendTX(`AUTHORIZE:VOTE ${opts.signer}`, txo)
 	})
 
@@ -145,7 +153,9 @@ program
 		const {kit, savingsVG} = await initKit()
 		const accounts = await kit.contracts.getAccounts()
 		const pop = accounts.parseSignatureOfAddress(savingsVG.options.address, opts.signer, opts.signature)
-		const txo = toTransactionObject(kit, savingsVG.methods.authorizeValidatorSigner(opts.signer, pop.v, pop.r, pop.s))
+		const txo = toTransactionObject(
+			kit.connection,
+			savingsVG.methods.authorizeValidatorSigner(opts.signer, pop.v, pop.r, pop.s))
 		await sendTX(`AUTHORIZE:VALIDATOR ${opts.signer}`, txo)
 	})
 

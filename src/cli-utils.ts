@@ -1,4 +1,4 @@
-import { CeloTransactionObject } from "@celo/contractkit"
+import { CeloTransactionObject } from "@celo/connect"
 import BigNumber from "bignumber.js"
 import { TransactionReceipt } from "web3-core"
 
