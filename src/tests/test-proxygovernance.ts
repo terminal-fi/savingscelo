@@ -1,11 +1,11 @@
 import { toWei } from "web3-utils"
 import { newKit } from "@celo/contractkit"
 import { increaseTime, Provider } from "celo-devchain"
-import { SavingsKit } from "../savingskit";
-import { SavingsCELOInstance } from "../../types/truffle-contracts/SavingsCELO";
-import { createAccounts } from "./utils";
-import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
-import { ProposalBuilder } from '@celo/contractkit/lib/governance'
+import { SavingsKit } from "../savingskit"
+import { SavingsCELOInstance } from "../../types/truffle-contracts/SavingsCELO"
+import { createAccounts } from "./utils"
+import { toTransactionObject } from "@celo/connect"
+import { ProposalBuilder } from '@celo/governance'
 import { ProposalStage, VoteValue } from '@celo/contractkit/lib/wrappers/Governance'
 
 const SavingsCELO = artifacts.require("SavingsCELO");
@@ -39,25 +39,25 @@ contract('SavingsCELO - Governance', (accounts) => {
 	})
 
 	it(`change owner`, async () => {
-		await toTransactionObject(kit,
+		await toTransactionObject(kit.connection,
 			savingsKit.contract.methods.changeOwner(owner2))
 			.sendAndWaitForReceipt({from: owner} as any)
 
 		try {
-			await toTransactionObject(kit,
+			await toTransactionObject(kit.connection,
 				savingsKit.contract.methods.changeOwner(owner2))
 				.sendAndWaitForReceipt({from: owner} as any)
 			assert.fail("must fail since owner2 is the new owner")
 		} catch {}
 
 		try {
-			await toTransactionObject(kit,
+			await toTransactionObject(kit.connection,
 				savingsKit.contract.methods.authorizeVoterProxy(proxyVoter))
 				.sendAndWaitForReceipt({from: owner} as any)
 			assert.fail("must fail since owner2 is the new owner")
 		} catch {}
 
-		await toTransactionObject(kit,
+		await toTransactionObject(kit.connection,
 			savingsKit.contract.methods.authorizeVoterProxy(proxyVoter))
 			.sendAndWaitForReceipt({from: owner2} as any)
 	})
@@ -92,7 +92,7 @@ contract('SavingsCELO - Governance', (accounts) => {
 		assert.lengthOf(queue, 1)
 		const proposalID = queue[0].proposalID
 		console.debug(`proposed: ${proposalID}, upvoting...`)
-		await toTransactionObject(kit,
+		await toTransactionObject(kit.connection,
 			savingsKit.contract.methods.proxyGovernanceUpvote(
 				proposalID.toFixed(0),
 				0, 0))
@@ -102,7 +102,7 @@ contract('SavingsCELO - Governance', (accounts) => {
 		assert.isTrue(queue2[0].upvotes.eq(toWei('1000', 'ether')), `upvotes: ${queue2[0].upvotes}`)
 
 		console.debug(`proposed: ${proposalID}, revoking upvote...`)
-		await toTransactionObject(kit,
+		await toTransactionObject(kit.connection,
 			savingsKit.contract.methods.proxyGovernanceRevokeUpvote(0, 0))
 			.sendAndWaitForReceipt({from: proxyVoter} as any)
 		const queue3 = await governance.getQueue()
@@ -127,7 +127,7 @@ contract('SavingsCELO - Governance', (accounts) => {
 		const pidx = deq.findIndex((e) => e.eq(proposalID))
 		assert.notEqual(pidx, -1, `Deque: ${deq}`)
 		for (const v of ["Yes", "No", "Abstain"]) {
-			await toTransactionObject(kit,
+			await toTransactionObject(kit.connection,
 				savingsKit.contract.methods.proxyGovernanceVote(
 					proposalID.toFixed(0),
 					pidx,

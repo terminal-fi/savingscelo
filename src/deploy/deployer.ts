@@ -3,9 +3,9 @@ import { program } from "commander"
 import fs from "fs"
 import path from "path"
 import {ContractKit, newKit} from "@celo/contractkit"
-import { AddressValidation, newLedgerWalletWithSetup } from "@celo/contractkit/lib/wallets/ledger-wallet"
+import { AddressValidation, newLedgerWalletWithSetup } from "@celo/wallet-ledger"
 import TransportNodeHid from "@ledgerhq/hw-transport-node-hid"
-import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
+import { toTransactionObject } from "@celo/connect"
 
 import SavingsCELOJson from "../../build/contracts/SavingsCELO.json"
 import SavingsCELOVoterV1Json from "../../build/contracts/SavingsCELOVoterV1.json"
@@ -121,7 +121,9 @@ async function main() {
 	const voterAddr = await savingsKit.contract.methods._voter().call()
 	if (voterAddr !== contractSavingsCELOVoterV1) {
 		console.info(`SavingsCELO authorizing voter: ${contractSavingsCELOVoterV1}...`)
-		const txo = toTransactionObject(kit, savingsKit.contract.methods.authorizeVoterProxy(contractSavingsCELOVoterV1))
+		const txo = toTransactionObject(
+			kit.connection,
+			savingsKit.contract.methods.authorizeVoterProxy(contractSavingsCELOVoterV1))
 		await txo.sendAndWaitForReceipt()
 	}
 	console.info(`SavingsCELO VOTER:`, contractSavingsCELOVoterV1)

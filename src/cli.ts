@@ -3,9 +3,9 @@ import { toWei } from "web3-utils"
 import { program } from "commander"
 import BigNumber from "bignumber.js"
 import { ContractKit, newKit } from "@celo/contractkit"
-import { AddressValidation, newLedgerWalletWithSetup } from "@celo/contractkit/lib/wallets/ledger-wallet"
+import { AddressValidation, newLedgerWalletWithSetup } from "@celo/wallet-ledger"
 import TransportNodeHid from "@ledgerhq/hw-transport-node-hid"
-import { toTransactionObject } from "@celo/contractkit/lib/wrappers/BaseWrapper"
+import { toTransactionObject } from "@celo/connect"
 
 import { SavingsKit } from "./savingskit"
 import { newVoterV1 } from "./voterv1"
@@ -135,7 +135,7 @@ program
 		} else {
 			toTransfer = await savingsKit.contract.methods.celoToSavings(toWei(opts.amount as string, 'ether')).call()
 		}
-		const txo = toTransactionObject(kit, savingsKit.contract.methods.transfer(opts.to, toTransfer))
+		const txo = toTransactionObject(kit.connection, savingsKit.contract.methods.transfer(opts.to, toTransfer))
 		await sendTX(
 			`TRANSFER: ~${opts.amount} CELO ` +
 			`(${new BigNumber(toTransfer).div(1e18).toString()} SavingsCELO) => ${opts.to}`, txo)
