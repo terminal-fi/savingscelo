@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.6.2;
+pragma solidity 0.6.8;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -120,7 +120,7 @@ contract SavingsCELO is ERC20 {
 	function proxyGovernanceVote(
 		uint256 proposalId,
 		uint256 index,
-		VoteValue value) voterProxyOnly external returns (bool) {
+		Governance.VoteValue value) voterProxyOnly external returns (bool) {
 		return _governance.vote(proposalId, index, value);
 	}
 	function proxyGovernanceUpvote(

@@ -18,7 +18,7 @@ async function main() {
 		await axios.post(
 			"https://baklava-blockscout.celo-testnet.org/api?module=contract&action=verify", {
 				addressHash: "0x87AF5A902c22917A821077C86EbD873Dc64524Fc",
-				compilerVersion: "0.6.2",
+				compilerVersion: "0.6.8",
 				contractSourceCode: flattened,
 				name: "SavingsCELO",
 				optimization: false,
