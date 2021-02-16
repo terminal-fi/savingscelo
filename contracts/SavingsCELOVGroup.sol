@@ -77,7 +77,7 @@ contract SavingsCELOVGroup {
 
 	/// Proxy function for locked CELO management.
 	function lockGold(uint256 value) ownerOnly external {
-		_lockedGold.lock.gas(gasleft()).value(value)();
+		_lockedGold.lock{gas:gasleft(), value: value}();
 	}
 	/// Proxy function for locked CELO management.
 	function unlockGold(uint256 value) ownerOnly external {

@@ -10,8 +10,9 @@ import "./interfaces/IAccounts.sol";
 import "./interfaces/ILockedGold.sol";
 import "./interfaces/IElection.sol";
 import "./interfaces/IGovernance.sol";
+import "./interfaces/IVoterProxy.sol";
 
-contract SavingsCELO is ERC20 {
+contract SavingsCELO is ERC20, IVoterProxy {
 	using SafeMath for uint256;
 
 	address public _owner;
@@ -91,10 +92,10 @@ contract SavingsCELO is ERC20 {
 		address group,
 		uint256 value,
 		address lesser,
-		address greater) voterProxyOnly external returns (bool) {
+		address greater) voterProxyOnly external override returns (bool) {
 		return _election.vote(group, value, lesser, greater);
 	}
-	function proxyActivate(address group) voterProxyOnly external returns (bool) {
+	function proxyActivate(address group) voterProxyOnly external override returns (bool) {
 		return _election.activate(group);
 	}
 	function proxyRevokeActive(
@@ -102,7 +103,7 @@ contract SavingsCELO is ERC20 {
 		uint256 value,
 		address lesser,
 		address greater,
-		uint256 index) voterProxyOnly external returns (bool) {
+		uint256 index) voterProxyOnly external override returns (bool) {
 		return _election.revokeActive(group, value, lesser, greater, index);
 	}
 	function proxyRevokePending(
@@ -110,7 +111,7 @@ contract SavingsCELO is ERC20 {
 		uint256 value,
 		address lesser,
 		address greater,
-		uint256 index) voterProxyOnly external returns (bool) {
+		uint256 index) voterProxyOnly external override returns (bool) {
 		return _election.revokePending(group, value, lesser, greater, index);
 	}
 
@@ -120,18 +121,18 @@ contract SavingsCELO is ERC20 {
 	function proxyGovernanceVote(
 		uint256 proposalId,
 		uint256 index,
-		Governance.VoteValue value) voterProxyOnly external returns (bool) {
+		Governance.VoteValue value) voterProxyOnly external override returns (bool) {
 		return _governance.vote(proposalId, index, value);
 	}
 	function proxyGovernanceUpvote(
 		uint256 proposalId,
 		uint256 lesser,
-		uint256 greater) voterProxyOnly external returns (bool) {
+		uint256 greater) voterProxyOnly external override returns (bool) {
 		return _governance.upvote(proposalId, lesser, greater);
 	}
 	function proxyGovernanceRevokeUpvote(
 		uint256 lesser,
-		uint256 greater) voterProxyOnly external returns (bool) {
+		uint256 greater) voterProxyOnly external override returns (bool) {
 		return _governance.revokeUpvote(lesser, greater);
 	}
 
@@ -150,7 +151,7 @@ contract SavingsCELO is ERC20 {
 		uint256 toLock = _goldToken.balanceOf(address(this));
 		assert(toLock >= celoAmount);
 		// It is safe to call _lockedGold.lock() with 0 value.
-		_lockedGold.lock.value(toLock)();
+		_lockedGold.lock{value: toLock}();
 		emit Deposited(msg.sender, celoAmount, toMint);
 	}
 
@@ -182,7 +183,7 @@ contract SavingsCELO is ERC20 {
 		// user explicitly donates it.
 		uint256 unlocked = _goldToken.balanceOf(address(this));
 		if (unlocked > 0) {
-			_lockedGold.lock.value(unlocked)();
+			_lockedGold.lock{value: unlocked}();
 		}
 		// toUnlock formula comes from:
 		// (supply / totalCELO) === (supply - savingsAmount) / (totalCELO - toUnlock)
