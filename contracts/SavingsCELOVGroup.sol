@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.6.8;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -13,11 +14,12 @@ interface IExchange {
 	function sell(uint256, uint256, bool) external returns (uint256);
 }
 
-contract SavingsCELOVGroup {
+contract SavingsCELOVGroup is Ownable {
 	using SafeMath for uint256;
 
-	address public _owner;
 	address public _savingsCELO;
+
+	event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
 	IRegistry constant _registry = IRegistry(address(0x000000000000000000000000000000000000ce10));
 	IAccounts public _accounts;
@@ -27,7 +29,6 @@ contract SavingsCELOVGroup {
 	IERC20 public _stableToken;
 
 	constructor (address savingsCELO) public {
-		_owner = msg.sender;
 		_savingsCELO = savingsCELO;
 		_accounts = IAccounts(_registry.getAddressForStringOrDie("Accounts"));
 		_lockedGold = ILockedGold(_registry.getAddressForStringOrDie("LockedGold"));
@@ -40,18 +41,6 @@ contract SavingsCELOVGroup {
 		_accounts.setName("SavingsCELO - Group");
 	}
 
-	modifier ownerOnly() {
-		require(_owner == msg.sender, "caller must be the registered _owner");
-		_;
-	}
-
-	/// Changes owner of the contract that has authorizeVoteSigner privileges.
-	function changeOwner(address newOwner) ownerOnly external {
-		require(newOwner != address(0x0), "must provide valid new owner");
-		_owner = newOwner;
-	}
-
-
 	/// Authorizes new vote signer that can manage voting for all of groups locked CELO.
 	/// {v, r, s} constitutes proof-of-key-possession signature of signer for this
 	/// contract address.
@@ -59,7 +48,7 @@ contract SavingsCELOVGroup {
 		address signer,
 		uint8 v,
 		bytes32 r,
-		bytes32 s) ownerOnly external {
+		bytes32 s) onlyOwner external {
 		_accounts.authorizeVoteSigner(signer, v, r, s);
 	}
 
@@ -71,28 +60,28 @@ contract SavingsCELOVGroup {
 		address signer,
 		uint8 v,
 		bytes32 r,
-		bytes32 s) ownerOnly external {
+		bytes32 s) onlyOwner external {
 		_accounts.authorizeValidatorSigner(signer, v, r, s);
 	}
 
 	/// Proxy function for locked CELO management.
-	function lockGold(uint256 value) ownerOnly external {
+	function lockGold(uint256 value) onlyOwner external {
 		_lockedGold.lock{gas:gasleft(), value: value}();
 	}
 	/// Proxy function for locked CELO management.
-	function unlockGold(uint256 value) ownerOnly external {
+	function unlockGold(uint256 value) onlyOwner external {
 		_lockedGold.unlock(value);
 	}
 	/// Proxy function for locked CELO management.
-	function relockGold(uint256 index, uint256 value) ownerOnly external {
+	function relockGold(uint256 index, uint256 value) onlyOwner external {
 		_lockedGold.relock(index, value);
 	}
 	/// Proxy function for locked CELO management.
-	function withdrawLockedGold(uint256 index) ownerOnly external {
+	function withdrawLockedGold(uint256 index) onlyOwner external {
 		_lockedGold.withdraw(index);
 	}
 	/// Transfer CELO back to the owner.
-	function withdraw(uint256 amount) ownerOnly external {
+	function withdraw(uint256 amount) onlyOwner external {
 		require(
 			_goldToken.transfer(msg.sender, amount),
 			"withdraw failed");

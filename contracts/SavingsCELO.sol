@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.6.8;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -12,11 +13,12 @@ import "./interfaces/IElection.sol";
 import "./interfaces/IGovernance.sol";
 import "./interfaces/IVoterProxy.sol";
 
-contract SavingsCELO is ERC20, IVoterProxy {
+contract SavingsCELO is ERC20, IVoterProxy, Ownable {
 	using SafeMath for uint256;
 
-	address public _owner;
 	address public _voter;
+
+	event VoterAuthorized(address indexed previousVoter, address indexed newVoter);
 
 	IRegistry constant _registry = IRegistry(address(0x000000000000000000000000000000000000ce10));
 	IAccounts public _accounts;
@@ -39,7 +41,6 @@ contract SavingsCELO is ERC20, IVoterProxy {
 	event WithdrawCanceled(address indexed from, uint256 celoAmount, uint256 savingsAmount);
 
 	constructor () ERC20("Savings CELO", "sCELO") public {
-		_owner = msg.sender;
 		_accounts = IAccounts(_registry.getAddressForStringOrDie("Accounts"));
 		_goldToken = IERC20(_registry.getAddressForStringOrDie("GoldToken"));
 		_lockedGold = ILockedGold(_registry.getAddressForStringOrDie("LockedGold"));
@@ -49,18 +50,6 @@ contract SavingsCELO is ERC20, IVoterProxy {
 			_accounts.createAccount(),
 			"createAccount failed");
 	}
-
-	modifier ownerOnly() {
-		require(_owner == msg.sender, "caller must be the registered _owner");
-		_;
-	}
-
-	/// Changes owner of the contract that has authorizeVoteSigner privileges.
-	function changeOwner(address newOwner) ownerOnly external {
-		require(newOwner != address(0x0), "must provide valid new owner");
-		_owner = newOwner;
-	}
-
 
 	/// Authorizes new vote signer that can manage voting for all of contract's locked
 	/// CELO. {v, r, s} constitutes proof-of-key-possession signature of signer for this
@@ -73,12 +62,13 @@ contract SavingsCELO is ERC20, IVoterProxy {
 		address signer,
 		uint8 v,
 		bytes32 r,
-		bytes32 s) ownerOnly external {
+		bytes32 s) onlyOwner external {
 		_accounts.authorizeVoteSigner(signer, v, r, s);
 	}
 
 	/// Authorizes another contract to perform voting on behalf of SavingsCELO.
-	function authorizeVoterProxy(address proxy) ownerOnly external {
+	function authorizeVoterProxy(address proxy) onlyOwner external {
+		emit VoterAuthorized(_voter, proxy);
 		_voter = proxy;
 	}
 

@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.6.8;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./interfaces/IRegistry.sol";
@@ -10,10 +11,9 @@ import "./interfaces/IVoterProxy.sol";
 
 // SavingsCELO voter contract. VoterV1 supports voting for only one group
 // at a time.
-contract SavingsCELOVoterV1 {
+contract SavingsCELOVoterV1 is Ownable {
 	using SafeMath for uint256;
 
-	address public _owner;
 	IVoterProxy public _proxy;
 	address public votedGroup;
 
@@ -22,20 +22,9 @@ contract SavingsCELOVoterV1 {
 	IElection public _election;
 
 	constructor (address savingsCELO) public {
-		_owner = msg.sender;
 		_proxy = IVoterProxy(savingsCELO);
 		_lockedGold = ILockedGold(_registry.getAddressForStringOrDie("LockedGold"));
 		_election = IElection(_registry.getAddressForStringOrDie("Election"));
-	}
-
-	modifier ownerOnly() {
-		require(_owner == msg.sender, "caller must be the registered _owner");
-		_;
-	}
-
-	function changeOwner(address newOwner) ownerOnly external {
-		require(newOwner != address(0x0), "must provide valid new owner");
-		_owner = newOwner;
 	}
 
 	/// Changes voted group. This call revokes all current votes for currently voted group.
@@ -54,7 +43,7 @@ contract SavingsCELOVoterV1 {
 		address lesserAfterPendingRevoke,
 		address greaterAfterPendingRevoke,
 		address lesserAfterActiveRevoke,
-		address greaterAfterActiveRevoke) ownerOnly external {
+		address greaterAfterActiveRevoke) onlyOwner external {
 		if (votedGroup != address(0)) {
 			uint256 pendingVotes = _election.getPendingVotesForGroupByAccount(votedGroup, address(_proxy));
 			uint256 activeVotes = _election.getActiveVotesForGroupByAccount(votedGroup, address(_proxy));

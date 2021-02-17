@@ -40,12 +40,12 @@ contract('SavingsCELO - Governance', (accounts) => {
 
 	it(`change owner`, async () => {
 		await toTransactionObject(kit.connection,
-			savingsKit.contract.methods.changeOwner(owner2))
+			savingsKit.contract.methods.transferOwnership(owner2))
 			.sendAndWaitForReceipt({from: owner} as any)
 
 		try {
 			await toTransactionObject(kit.connection,
-				savingsKit.contract.methods.changeOwner(owner2))
+				savingsKit.contract.methods.transferOwnership(owner2))
 				.sendAndWaitForReceipt({from: owner} as any)
 			assert.fail("must fail since owner2 is the new owner")
 		} catch {}
