@@ -68,8 +68,8 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable {
 
 	/// Authorizes another contract to perform voting on behalf of SavingsCELO.
 	function authorizeVoterProxy(address proxy) onlyOwner external {
-		emit VoterAuthorized(_voter, proxy);
 		_voter = proxy;
+		emit VoterAuthorized(_voter, proxy);
 	}
 
 	modifier voterProxyOnly() {
@@ -177,11 +177,11 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable {
 		}
 		// toUnlock formula comes from:
 		// (supply / totalCELO) === (supply - savingsAmount) / (totalCELO - toUnlock)
-		uint256 toUnlock = savingsAmount * totalCELO / totalSavingsCELO;
+		uint256 toUnlock = savingsAmount.mul(totalCELO).div(totalSavingsCELO);
 		uint256 nonvoting = _lockedGold.getAccountNonvotingLockedGold(address(this));
 		if (toUnlock > nonvoting) {
 			revokeVotes(
-				toUnlock - nonvoting,
+				toUnlock.sub(nonvoting),
 				lesserAfterPendingRevoke,
 				greaterAfterPendingRevoke,
 				lesserAfterActiveRevoke,
@@ -214,14 +214,14 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable {
 		uint256 pendingVotes = _election.getPendingVotesForGroupByAccount(revokeGroup, address(this));
 		uint256 activeVotes = _election.getActiveVotesForGroupByAccount(revokeGroup, address(this));
 		require(
-			pendingVotes + activeVotes >= toRevoke,
+			pendingVotes.add(activeVotes) >= toRevoke,
 			"not enough unlocked CELO and revokable votes");
 
 		uint256 toRevokePending = pendingVotes;
 		if (toRevokePending > toRevoke) {
 			toRevokePending = toRevoke;
 		}
-		uint256 toRevokeActive = toRevoke - toRevokePending;
+		uint256 toRevokeActive = toRevoke.sub(toRevokePending);
 		if (toRevokePending > 0) {
 			require(
 				_election.revokePending(
@@ -305,7 +305,7 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable {
 			return 0;
 		}
 		uint256 totalCELO = totalSupplyCELO();
-		return savingsAmount * totalCELO / totalSavingsCELO;
+		return savingsAmount.mul(totalCELO).div(totalSavingsCELO);
 	}
 	/// Returns amount of SavingsCELO tokens that can be received for depositing celoAmount CELO tokens.
 	function celoToSavings(uint256 celoAmount) external view returns (uint256) {
@@ -317,7 +317,7 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable {
 	function totalSupplyCELO() internal view returns(uint256) {
 		uint256 locked = _lockedGold.getAccountTotalLockedGold(address(this));
 		uint256 unlocked = _goldToken.balanceOf(address(this));
-		return locked + unlocked;
+		return locked.add(unlocked);
 	}
 
 	function savingsToMint(
@@ -328,9 +328,9 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable {
 			// 2^16 is chosen arbitrarily. since maximum amount of CELO is capped at 1BLN, we can afford to
 			// multiply it by 2^16 without running into any overflow issues. This also makes it clear that
 			// SavingsCELO and CELO don't have 1:1 relationship to avoid confusion down the line.
-			return celoToAdd * 65536;
+			return celoToAdd.mul(65536);
 		}
-		return celoToAdd * totalSavingsCELO / totalCELO;
+		return celoToAdd.mul(totalSavingsCELO).div(totalCELO);
 	}
 
 	receive() external payable {}

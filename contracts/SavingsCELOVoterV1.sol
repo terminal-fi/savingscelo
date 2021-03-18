@@ -82,8 +82,8 @@ contract SavingsCELOVoterV1 is Ownable {
 			uint256 totalVotes = _election.getTotalVotesForGroup(votedGroup);
 			if (maxVotes <= totalVotes) {
 				toVote = 0;
-			} else if (maxVotes - totalVotes < toVote) {
-				toVote = maxVotes - totalVotes;
+			} else if (maxVotes.sub(totalVotes) < toVote) {
+				toVote = maxVotes.sub(totalVotes);
 			}
 			if (toVote > 0) {
 				require(
