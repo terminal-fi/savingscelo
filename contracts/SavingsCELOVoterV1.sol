@@ -4,27 +4,20 @@ pragma solidity 0.6.8;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./interfaces/IRegistry.sol";
-import "./interfaces/ILockedGold.sol";
+import "./UsingRegistry.sol";
 import "./interfaces/IElection.sol";
 import "./interfaces/IVoterProxy.sol";
 
 // SavingsCELO voter contract. VoterV1 supports voting for only one group
 // at a time.
-contract SavingsCELOVoterV1 is Ownable {
+contract SavingsCELOVoterV1 is Ownable, UsingRegistry {
 	using SafeMath for uint256;
 
 	IVoterProxy public _proxy;
 	address public votedGroup;
 
-	IRegistry constant _registry = IRegistry(address(0x000000000000000000000000000000000000ce10));
-	ILockedGold public _lockedGold;
-	IElection public _election;
-
 	constructor (address savingsCELO) public {
 		_proxy = IVoterProxy(savingsCELO);
-		_lockedGold = ILockedGold(_registry.getAddressForStringOrDie("LockedGold"));
-		_election = IElection(_registry.getAddressForStringOrDie("Election"));
 	}
 
 	/// Changes voted group. This call revokes all current votes for currently voted group.
@@ -45,6 +38,7 @@ contract SavingsCELOVoterV1 is Ownable {
 		address lesserAfterActiveRevoke,
 		address greaterAfterActiveRevoke) onlyOwner external {
 		if (votedGroup != address(0)) {
+			IElection _election = getElection();
 			uint256 pendingVotes = _election.getPendingVotesForGroupByAccount(votedGroup, address(_proxy));
 			uint256 activeVotes = _election.getActiveVotesForGroupByAccount(votedGroup, address(_proxy));
 			if (pendingVotes > 0) {
@@ -71,12 +65,13 @@ contract SavingsCELOVoterV1 is Ownable {
 		address greater
 	) external {
 		require(votedGroup != address(0), "voted group is not set");
+		IElection _election = getElection();
 		if (_election.hasActivatablePendingVotes(address(_proxy), votedGroup)) {
 			require(
 				_proxy.proxyActivate(votedGroup),
 				"activate for voted group failed");
 		}
-		uint256 toVote = _lockedGold.getAccountNonvotingLockedGold(address(_proxy));
+		uint256 toVote = getLockedGold().getAccountNonvotingLockedGold(address(_proxy));
 		if (toVote > 0) {
 			uint256 maxVotes = _election.getNumVotesReceivable(votedGroup);
 			uint256 totalVotes = _election.getTotalVotesForGroup(votedGroup);
