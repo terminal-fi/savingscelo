@@ -4,7 +4,13 @@
  */
 
 module.exports = {
-  mocha: {},
+  mocha: {
+    reporter: 'eth-gas-reporter',
+    reporterOptions: {
+      currency: "ETH",
+      gasPrice: 0.5,
+    }
+  },
 
   networks: {
     development: {
