@@ -1,12 +1,13 @@
-import { CeloTransactionObject } from "@celo/connect"
+import { CeloTransactionObject, CeloTx } from "@celo/connect"
 import BigNumber from "bignumber.js"
 import { TransactionReceipt } from "web3-core"
 
 export async function sendTX(
 	name: string,
-	tx: CeloTransactionObject<unknown>): Promise<TransactionReceipt> {
+	tx: CeloTransactionObject<unknown>,
+	params?: Pick<CeloTx, "value">) {
 	console.info(`Sending TX: ${name} ...`)
-	const result = await tx.send()
+	const result = await tx.send(params)
 	const hash = await result.getHash()
 	console.info(`Waiting TX: ${hash} ...`)
 	const receipt = await result.waitReceipt()

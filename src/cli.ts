@@ -81,7 +81,7 @@ program
 			await sendTX('APPROVE SavingsCELO', approveTX)
 		}
 		const toDeposit = toWei(value, 'ether')
-		await sendTX(`DEPOSIT: ${value} CELO`, savingsKit.deposit(toDeposit))
+		await sendTX(`DEPOSIT: ${value} CELO`, savingsKit.deposit(), {value: toDeposit})
 	})
 
 async function printPendingWithdrawals(kit: ContractKit, savingsKit: SavingsKit) {

@@ -57,17 +57,17 @@ contract('SavingsCELO - Voting', (accounts) => {
 		for (const addr of [vgroup, validator0]) {
 			await accountsC
 				.createAccount()
-				.sendAndWaitForReceipt({from: addr} as any)
+				.sendAndWaitForReceipt({from: addr})
 			await lockedGold
 				.lock()
 				.sendAndWaitForReceipt({
 					from: addr,
-					value: toWei('10000.1', 'ether')} as any)
+					value: toWei('10000.1', 'ether')})
 		}
 
 		await (await validator
 			.registerValidatorGroup(new BigNumber(0.5)))
-			.sendAndWaitForReceipt({from: vgroup} as any)
+			.sendAndWaitForReceipt({from: vgroup})
 		// Random hex strings
 		const blsPublicKey =
 			'0x4fa3f67fc913878b068d1fa1cdddc54913d3bf988dbe5a36a20fa888f20d4894c408a6773f3d7bde11154f2a3076b700d345a42fd25a0e5e83f4db5586ac7979ac2053cd95d8f2efd3e959571ceccaa743e02cf4be3f5d7aaddb0b06fc9aff00'
@@ -76,38 +76,38 @@ contract('SavingsCELO - Voting', (accounts) => {
 		const ecdsaPublicKey = await addressToPublicKey(validator0, kit.web3.eth.sign)
 		await validator
 			.registerValidator(ecdsaPublicKey, blsPublicKey, blsPoP)
-			.sendAndWaitForReceipt({from: validator0} as any)
+			.sendAndWaitForReceipt({from: validator0})
 
 		await validator
 			.affiliate(vgroup)
-			.sendAndWaitForReceipt({from: validator0} as any)
+			.sendAndWaitForReceipt({from: validator0})
 		await (await validator
 			.addMember(vgroup, validator0))
-			.sendAndWaitForReceipt({from: vgroup} as any)
+			.sendAndWaitForReceipt({from: vgroup})
 
 		await (await voterV1
 			.changeVotedGroup(vgroup))
-			.sendAndWaitForReceipt({from: owner} as any)
+			.sendAndWaitForReceipt({from: owner})
 	})
 
 	it(`changeVotedGroup with 0 votes`, async () => {
 		await (await voterV1
 			.changeVotedGroup(vgroup))
-			.sendAndWaitForReceipt({from: owner} as any)
+			.sendAndWaitForReceipt({from: owner})
 	})
 
 	it(`withdraw pending and active votes`, async () => {
 		const election = await kit.contracts.getElection()
 		const approveTX = await savingsKit.infiniteApprove(locker)
 		if (approveTX) {
-			await approveTX.sendAndWaitForReceipt({from: locker} as any)
+			await approveTX.sendAndWaitForReceipt({from: locker})
 		}
 
 		// Deposit 1000 CELO and vote for `vgroup`
-		await savingsCELO.deposit(toWei('1000', 'ether'), {from: locker})
+		await savingsCELO.deposit({from: locker, value: toWei('1000', 'ether')})
 		await (await voterV1
 			.activateAndVote())
-			.sendAndWaitForReceipt({from: locker} as any)
+			.sendAndWaitForReceipt({from: locker})
 
 		// Withdraw 500 CELO, forcing revoking of half of the votes.
 		let totalVotes = await election.getTotalVotesForGroup(vgroup)
@@ -115,7 +115,7 @@ contract('SavingsCELO - Voting', (accounts) => {
 		const toWithdraw500 = await savingsCELO.celoToSavings(toWei('500', 'ether'))
 		await (await savingsKit
 			.withdrawStart(toWithdraw500.toString()))
-			.sendAndWaitForReceipt({from: locker} as any)
+			.sendAndWaitForReceipt({from: locker})
 
 		totalVotes = await election.getTotalVotesForGroup(vgroup)
 		assert.isTrue(totalVotes.eq(toWei('500', 'ether')))
@@ -125,7 +125,7 @@ contract('SavingsCELO - Voting', (accounts) => {
 		await mineToNextEpoch(kit)
 		await (await voterV1
 			.activateAndVote())
-			.sendAndWaitForReceipt({from: locker} as any)
+			.sendAndWaitForReceipt({from: locker})
 		activeVotes = await election.getActiveVotesForGroup(vgroup)
 		assert.isTrue(activeVotes.eq(toWei('500', 'ether')), `activeVotes: ${activeVotes}`)
 
@@ -133,7 +133,7 @@ contract('SavingsCELO - Voting', (accounts) => {
 		await savingsCELO.withdrawCancel(0, 0, {from: locker})
 		await (await voterV1
 			.activateAndVote())
-			.sendAndWaitForReceipt({from: locker} as any)
+			.sendAndWaitForReceipt({from: locker})
 
 		totalVotes = await election.getTotalVotesForGroup(vgroup)
 		assert.isTrue(totalVotes.eq(toWei('1000', 'ether')), `totalVotes: ${totalVotes}`)
@@ -145,7 +145,7 @@ contract('SavingsCELO - Voting', (accounts) => {
 		const toWithdraw600 = await savingsCELO.celoToSavings(toWei('600', 'ether'))
 		await (await savingsKit
 			.withdrawStart(toWithdraw600.toString()))
-			.sendAndWaitForReceipt({from: locker} as any)
+			.sendAndWaitForReceipt({from: locker})
 
 		totalVotes = await election.getTotalVotesForGroup(vgroup)
 		assert.isTrue(totalVotes.eq(toWei('400', 'ether')), `totalVotes: ${totalVotes}`)
@@ -156,7 +156,7 @@ contract('SavingsCELO - Voting', (accounts) => {
 	it(`changeVotedGroup with pending and active votes`, async () => {
 		await (await voterV1
 			.changeVotedGroup(vgroup))
-			.sendAndWaitForReceipt({from: owner} as any)
+			.sendAndWaitForReceipt({from: owner})
 		const election = await kit.contracts.getElection()
 		const totalVotes = await election.getTotalVotesForGroup(vgroup)
 		assert.isTrue(totalVotes.eq(0), `totalVotes: ${totalVotes}`)
@@ -174,7 +174,7 @@ contract('SavingsCELO - Voting', (accounts) => {
 	// 		const toTransfer = groupVotes.capacity.plus(1e18)
 	// 		await goldToken
 	// 			.transfer(locker, toTransfer.toFixed(0))
-	// 			.sendAndWaitForReceipt({from: owner} as any)
+	// 			.sendAndWaitForReceipt({from: owner})
 	// 		await savingsCELO.deposit(toTransfer.toFixed(0), {from: locker})
 
 	// 		const nonvotingCELO = await lockedGold.getAccountNonvotingLockedGold(savingsCELO.address)
@@ -188,7 +188,7 @@ contract('SavingsCELO - Voting', (accounts) => {
 	// 	// vgroup now should have more locked CELO than vote capacity. make sure voteAndActivate still works
 	// 	// and doesn't fail.
 	// 	await (await voterV1.activateAndVote())
-	// 		.sendAndWaitForReceipt({from: locker} as any)
+	// 		.sendAndWaitForReceipt({from: locker})
 	// 	const nonvotingCELOAfter = await lockedGold.getAccountNonvotingLockedGold(savingsCELO.address)
 	// 	assert.isTrue(nonvotingCELOAfter.gt(0), `non voting: ${nonvotingCELOAfter}`)
 
@@ -196,7 +196,7 @@ contract('SavingsCELO - Voting', (accounts) => {
 	// 	const toWithdraw = await savingsKit.contract.methods.balanceOf(locker).call()
 	// 	await (await savingsKit
 	// 		.withdrawStart(toWithdraw))
-	// 		.sendAndWaitForReceipt({from: locker} as any)
+	// 		.sendAndWaitForReceipt({from: locker})
 	// })
 
 })

@@ -45,8 +45,8 @@ contract('SavingsCELO - Deposits', (accounts) => {
 
 		await goldToken
 			.increaseAllowance(savingsCELO.address, toLock)
-			.sendAndWaitForReceipt({from: a0} as any)
-		let res = await savingsCELO.deposit(toLock, {from: a0})
+			.sendAndWaitForReceipt({from: a0})
+		let res = await savingsCELO.deposit({from: a0, value: toLock})
 		const eventDeposited = res.logs.pop() as Truffle.TransactionLog<Deposited>
 		assert.equal(eventDeposited.event, "Deposited")
 		assert.equal(eventDeposited.args.from, a0)
@@ -71,13 +71,13 @@ contract('SavingsCELO - Deposits', (accounts) => {
 		try{
 			await (await savingsKit
 				.withdrawStart(toWithdraw.toString()))
-				.sendAndWaitForReceipt({from: a1} as any)
+				.sendAndWaitForReceipt({from: a1})
 			assert.fail("withdraw from `a1` must have failed!")
 		} catch {}
 		try{
 			await (await savingsKit
 				.withdrawStart(toWithdraw.addn(1e18).toString()))
-				.sendAndWaitForReceipt({from: a0} as any)
+				.sendAndWaitForReceipt({from: a0})
 			assert.fail("withdraw of too much CELO must have failed!")
 		} catch {}
 	})
@@ -88,10 +88,10 @@ contract('SavingsCELO - Deposits', (accounts) => {
 		const toCancel = a0savings.sub(toWithdraw)
 		await (await savingsKit
 			.withdrawStart(toWithdraw.toString()))
-			.sendAndWaitForReceipt({from: a0} as any)
+			.sendAndWaitForReceipt({from: a0})
 		await (await savingsKit
 			.withdrawStart(toCancel.toString()))
-			.sendAndWaitForReceipt({from: a0} as any)
+			.sendAndWaitForReceipt({from: a0})
 
 		const a0savings2 = await savingsCELO.balanceOf(a0)
 		assert.isTrue(a0savings2.eqn(0))
@@ -103,19 +103,19 @@ contract('SavingsCELO - Deposits', (accounts) => {
 		try{
 			await (await savingsKit
 				.withdrawFinish(pendings, 0))
-				.sendAndWaitForReceipt({from: a0} as any)
+				.sendAndWaitForReceipt({from: a0})
 			assert.fail("withdraw must fail since not enough time has passed!")
 		} catch {}
 
 		await increaseTime(kit.web3.currentProvider as Provider, 3 * 24 * 3600 + 1)
 		await (await savingsKit
 			.withdrawFinish(pendings, 0))
-			.sendAndWaitForReceipt({from: a0} as any)
+			.sendAndWaitForReceipt({from: a0})
 
 		pendings = await savingsKit.pendingWithdrawals(a0)
 		await (await savingsKit
 			.withdrawCancel(pendings, 0))
-			.sendAndWaitForReceipt({from: a0} as any)
+			.sendAndWaitForReceipt({from: a0})
 
 		// Check to make sure there are no more pending withdrawals.
 		pendings = await savingsKit.pendingWithdrawals(a0)
@@ -139,7 +139,7 @@ contract('SavingsCELO - Deposits', (accounts) => {
 		// Donate 100 CELO
 		await goldToken
 			.transfer(savingsCELO.address, toDonate1)
-			.sendAndWaitForReceipt({from: a1} as any)
+			.sendAndWaitForReceipt({from: a1})
 
 		const savingsToCELO_2 = await savingsCELO.savingsToCELO(toWei('1', 'ether'))
 		assert.closeTo(
@@ -150,7 +150,7 @@ contract('SavingsCELO - Deposits', (accounts) => {
 		const contractCELO_2 = await lockedGold.getAccountTotalLockedGold(savingsCELO.address)
 		assert.isTrue(contractCELO.eq(contractCELO_2))
 		// Make sure 0 deposit works to finish the donation.
-		await savingsCELO.deposit(0, {from: a1})
+		await savingsCELO.deposit({from: a1, value: "0"})
 		const contractCELO_3 = await lockedGold.getAccountTotalLockedGold(savingsCELO.address)
 		assert.isTrue(contractCELO.plus(toDonate1).eq(contractCELO_3))
 	})
@@ -162,26 +162,26 @@ contract('SavingsCELO - Deposits', (accounts) => {
 		const a0savings = await savingsCELO.balanceOf(a0)
 		await goldToken
 			.transfer(savingsCELO.address, toDonate2)
-			.sendAndWaitForReceipt({from: a1} as any)
+			.sendAndWaitForReceipt({from: a1})
 
 		// Withdraw in 3 chunks just to make things messy.
 		await (await savingsKit
 			.withdrawStart(a0savings.divn(3).toString()))
-			.sendAndWaitForReceipt({from: a0} as any)
+			.sendAndWaitForReceipt({from: a0})
 		await (await savingsKit
 			.withdrawStart(a0savings.divn(7).toString()))
-			.sendAndWaitForReceipt({from: a0} as any)
+			.sendAndWaitForReceipt({from: a0})
 		const a0savingsLeft = await savingsCELO.balanceOf(a0)
 		await (await savingsKit
 			.withdrawStart(a0savingsLeft.toString()))
-			.sendAndWaitForReceipt({from: a0} as any)
+			.sendAndWaitForReceipt({from: a0})
 		await increaseTime(kit.web3.currentProvider as Provider, 3 * 24 * 3600 + 1)
 
 		const pendings = await savingsKit.pendingWithdrawals(a0)
 		for (let i = 1; i <= 3; i++) {
 			await (await savingsKit
 				.withdrawFinish(pendings, pendings.length - i))
-				.sendAndWaitForReceipt({from: a0} as any)
+				.sendAndWaitForReceipt({from: a0})
 		}
 
 		const contractCELO = await goldToken.balanceOf(savingsCELO.address)
@@ -193,13 +193,13 @@ contract('SavingsCELO - Deposits', (accounts) => {
 	it(`test 0 value and invalid arguments`, async () => {
 		// This is ok, and used in the donation flow.
 		await savingsKit
-			.deposit(0)
-			.sendAndWaitForReceipt({from: a0} as any)
+			.deposit()
+			.sendAndWaitForReceipt({from: a0, value: 0})
 
 		try{
 			await (await savingsKit
 				.withdrawStart(0))
-				.sendAndWaitForReceipt({from: a0} as any)
+				.sendAndWaitForReceipt({from: a0})
 			assert.fail("withdrawStart must have failed")
 		} catch {}
 		try{
