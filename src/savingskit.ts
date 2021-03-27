@@ -33,8 +33,8 @@ export class SavingsKit {
 		}
 	}
 
-	public deposit = (celoAmount: BigNumber.Value) => {
-		const txo = this.contract.methods.deposit(new BigNumber(celoAmount).toFixed(0))
+	public deposit = () => {
+		const txo = this.contract.methods.deposit()
 		return toTransactionObject(this.kit.connection, txo)
 	}
 

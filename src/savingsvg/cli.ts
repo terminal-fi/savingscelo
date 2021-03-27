@@ -126,7 +126,7 @@ program
 		await sendTX(`EXCHANGE-AND-DONATE: ${fmtValue(cUSDBalance)} cUSD => ${fmtValue(expectedAmt)} CELO`, txo)
 		const savingsCELOAddr = await savingsVG.methods._savingsCELO().call()
 		const savingsKit = new SavingsKit(kit, savingsCELOAddr)
-		await sendTX(`DEPOSIT`, savingsKit.deposit(0))
+		await sendTX(`DEPOSIT`, savingsKit.deposit(), {value: "0"})
 	})
 
 program

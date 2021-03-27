@@ -116,21 +116,17 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable, UsingRegistry {
 	/// Deposits CELO to the contract in exchange of SavingsCELO tokens. CELO tokens are transfered
 	/// using ERC20.transferFrom call, thus caller must call .approve or .increaseAllowance first to
 	/// allow for the transfer to go through.
-	function deposit(uint256 celoAmount) external {
-		uint256 totalCELO = totalSupplyCELO();
+	function deposit() external payable {
+		uint256 totalCELO = totalSupplyCELO().sub(msg.value);
 		uint256 totalSavingsCELO = this.totalSupply();
-		IERC20 _goldToken = getGoldToken();
-		require(
-			_goldToken.transferFrom(msg.sender, address(this), celoAmount),
-			"transfer of CELO failed");
-		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, celoAmount);
+		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, msg.value);
 		_mint(msg.sender, toMint);
 
-		uint256 toLock = _goldToken.balanceOf(address(this));
-		assert(toLock >= celoAmount);
+		uint256 toLock = address(this).balance;
+		assert(toLock >= msg.value);
 		// It is safe to call _lockedGold.lock() with 0 value.
 		getLockedGold().lock{value: toLock}();
-		emit Deposited(msg.sender, celoAmount, toMint);
+		emit Deposited(msg.sender, msg.value, toMint);
 	}
 
 	/// Starts withdraw process for savingsAmount SavingsCELO tokens. Since only nonvoting CELO can be
@@ -159,7 +155,7 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable, UsingRegistry {
 		// If there is any unlocked CELO, lock it to make rest of the logic always
 		// consistent. There should never be unlocked CELO in the contract unless some
 		// user explicitly donates it.
-		uint256 unlocked = getGoldToken().balanceOf(address(this));
+		uint256 unlocked = address(this).balance;
 		ILockedGold _lockedGold = getLockedGold();
 		if (unlocked > 0) {
 			_lockedGold.lock{value: unlocked}();
@@ -305,7 +301,7 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable, UsingRegistry {
 
 	function totalSupplyCELO() internal view returns(uint256) {
 		uint256 locked = getLockedGold().getAccountTotalLockedGold(address(this));
-		uint256 unlocked = getGoldToken().balanceOf(address(this));
+		uint256 unlocked = address(this).balance;
 		return locked.add(unlocked);
 	}
 

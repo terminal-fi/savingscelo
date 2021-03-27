@@ -12,7 +12,7 @@ export async function createAccounts(
 		await kit.web3.eth.personal.unlockAccount(addr, "", 0)
 		await goldToken
 			.transfer(addr, amount)
-			.sendAndWaitForReceipt({from: source} as any)
+			.sendAndWaitForReceipt({from: source})
 		addrs.push(addr)
 	}
 	return addrs
