@@ -98,10 +98,6 @@ contract('SavingsCELO - Voting', (accounts) => {
 
 	it(`withdraw pending and active votes`, async () => {
 		const election = await kit.contracts.getElection()
-		const approveTX = await savingsKit.infiniteApprove(locker)
-		if (approveTX) {
-			await approveTX.sendAndWaitForReceipt({from: locker})
-		}
 
 		// Deposit 1000 CELO and vote for `vgroup`
 		await savingsCELO.deposit({from: locker, value: toWei('1000', 'ether')})

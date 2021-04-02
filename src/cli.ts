@@ -75,11 +75,7 @@ program
 	.command("deposit <amount>")
 	.description("Deposit CELO to SavingsCELO contract")
 	.action(async (value: string) => {
-		const {kit, savingsKit} = await initKit()
-		const approveTX = await savingsKit.infiniteApprove(kit.defaultAccount!)
-		if (approveTX) {
-			await sendTX('APPROVE SavingsCELO', approveTX)
-		}
+		const {savingsKit} = await initKit()
 		const toDeposit = toWei(value, 'ether')
 		await sendTX(`DEPOSIT: ${value} CELO`, savingsKit.deposit(), {value: toDeposit})
 	})

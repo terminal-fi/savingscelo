@@ -63,10 +63,6 @@ contract('SavingsCELO - Governance', (accounts) => {
 	})
 
 	it(`proxy governance voting`, async () => {
-		const approveTX = await savingsKit.infiniteApprove(proxyVoter)
-		if (approveTX) {
-			await approveTX.sendAndWaitForReceipt({from: proxyVoter})
-		}
 		await savingsKit
 			.deposit()
 			.sendAndWaitForReceipt({from: proxyVoter, value: toWei('1000', 'ether')})
