@@ -43,9 +43,6 @@ contract('SavingsCELO - Deposits', (accounts) => {
 		const goldToken = await kit.contracts.getGoldToken()
 		const lockedGold = await kit.contracts.getLockedGold()
 
-		await goldToken
-			.increaseAllowance(savingsCELO.address, toLock)
-			.sendAndWaitForReceipt({from: a0})
 		let res = await savingsCELO.deposit({from: a0, value: toLock})
 		const eventDeposited = res.logs.pop() as Truffle.TransactionLog<Deposited>
 		assert.equal(eventDeposited.event, "Deposited")
