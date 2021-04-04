@@ -53,7 +53,7 @@ converted to CELO and deposited back into SavingsCELO contract.
 
 You can interact with the SavingsCELO contracts using a command-line interface.
 ```
-> npm install -g savingscelo@latest
+> npm install -g savingscelo-cli@latest
 > savingscli --help
 ```
 
@@ -67,4 +67,4 @@ with those out of the box. Example:
 
 `savingscelo` npm package comes with the typescript libraries that can be used to easily interact with the
 SavingsCELO contracts. These libraries are based on @celo/contractkit. Checkout source
-for `savingscli` tool for example usage: [src/cli.ts](./src/cli.ts)
+for `savingscli` tool for example usage: [savingscelo-cli](https://github.com/zviadm/savingscelo-cli)
