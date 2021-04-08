@@ -42,7 +42,7 @@
     "test": "./testall.sh",
     "testone": "yarn compile:ts && yarn truffle test --bail",
     "prepublishOnly": "yarn clean && yarn build",
-    "ganache": "rm -f ./src/deploy/ganache.*.json && yarn celo-devchain --port 7545",
+    "devchain": "rm -f ./src/deploy/ganache.*.json && yarn celo-devchain --port 7545",
     "deploy": "yarn ts-node ./src/deploy/deployer.ts"
   },
   "author": "Zviad Metreveli",

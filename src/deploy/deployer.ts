@@ -19,11 +19,11 @@ process.on('unhandledRejection', (reason, _promise) => {
 })
 
 program
-	.option("-n --network <name>", "Network to deploy to. Options: ganache, alfajores, baklava, mainnet", "ganache")
+	.option("-n --network <name>", "Network to deploy to. Options: devchain, alfajores, baklava, mainnet", "devchain")
 	.parse()
 
 const networks: {[key: string]: string} = {
-	"ganache": "http://127.0.0.1:7545",
+	"devchain": "http://127.0.0.1:7545",
 	"alfajores": "https://alfajores-forno.celo-testnet.org",
 	"baklava": "https://baklava-forno.celo-testnet.org",
 }
@@ -84,7 +84,7 @@ async function main() {
 
 	let wallet
 	let accountAddr
-	if (opts.network !== "ganache") {
+	if (opts.network !== "devchain") {
 		const transport = await TransportNodeHid.open('')
 		wallet = await newLedgerWalletWithSetup(
 			transport,
