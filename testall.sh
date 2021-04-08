@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-trap "killall background" EXIT
+trap 'jobs -p | xargs -r kill || true' EXIT
 echo "Starting celo-devchain on port 7545, logs: /tmp/savingscelo.celo-devchain.log ..."
 yarn celo-devchain --port 7545 &> /tmp/savingscelo.celo-devchain.log &
 while ! nc -z localhost 7545; do
