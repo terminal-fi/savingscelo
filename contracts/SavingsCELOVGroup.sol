@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./UsingRegistry.sol";
 import "./interfaces/IExchange.sol";
 
+/// @title SavingsCELO validator Group
 contract SavingsCELOVGroup is Ownable, UsingRegistry {
 	using SafeMath for uint256;
 

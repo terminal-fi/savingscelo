@@ -8,8 +8,8 @@ import "./UsingRegistry.sol";
 import "./interfaces/IElection.sol";
 import "./interfaces/IVoterProxy.sol";
 
-// SavingsCELO voter contract. VoterV1 supports voting for only one group
-// at a time.
+/// @title SavingsCELO voter contract.
+/// @notice VoterV1 supports voting for only one group a time.
 contract SavingsCELOVoterV1 is Ownable, UsingRegistry {
 	using SafeMath for uint256;
 
@@ -20,7 +20,7 @@ contract SavingsCELOVoterV1 is Ownable, UsingRegistry {
 		_proxy = IVoterProxy(savingsCELO);
 	}
 
-	/// Changes voted group. This call revokes all current votes for currently voted group.
+	/// @dev Changes voted group. This call revokes all current votes for currently voted group.
 	/// votedGroupIndex is the index of votedGroup in SavingsCELO votes. This is expected to be 0 since
 	/// SavingsCELO is supposed to be voting only for one group.
 	///
@@ -57,7 +57,7 @@ contract SavingsCELOVoterV1 is Ownable, UsingRegistry {
 		votedGroup = newGroup;
 	}
 
-	/// Activates any activatable votes and also casts new votes if there is new locked CELO in
+	/// @dev Activates any activatable votes and also casts new votes if there is new locked CELO in
 	/// SavingsCELO contract. Anyone can call this method, and it is expected to be called regularly to make
 	/// sure all new locked CELO is deployed to earn rewards.
 	function activateAndVote(
