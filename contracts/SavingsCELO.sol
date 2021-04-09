@@ -142,11 +142,11 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable, UsingRegistry {
 	}
 
 	/// @notice Deposits CELO to the contract in exchange of SavingsCELO (sCELO) tokens.
-	/// @return Amount of sCELO tokens minted.
-	function deposit() external payable returns (uint256) {
+	/// @return toMint Amount of sCELO tokens minted.
+	function deposit() external payable returns (uint256 toMint) {
 		uint256 totalCELO = totalSupplyCELO().sub(msg.value);
 		uint256 totalSavingsCELO = this.totalSupply();
-		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, msg.value);
+		toMint = savingsToMint(totalSavingsCELO, totalCELO, msg.value);
 		_mint(msg.sender, toMint);
 
 		uint256 toLock = address(this).balance;
@@ -169,14 +169,14 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable, UsingRegistry {
 	///
 	/// Note that it is possible for this call to fail due to accidental race conditions if lesser.../greater...
 	/// parameters no longer match due to changes in overall voting ranking.
-	/// @return amount of CELO tokens that will be withdrawn.
+	/// @return toWithdraw amount of CELO tokens that will be withdrawn.
 	function withdrawStart(
 		uint256 savingsAmount,
 		address lesserAfterPendingRevoke,
 		address greaterAfterPendingRevoke,
 		address lesserAfterActiveRevoke,
 		address greaterAfterActiveRevoke
-		) external returns (uint256) {
+		) external returns (uint256 toWithdraw) {
 		require(savingsAmount > 0, "withdraw amount must be positive");
 		uint256 totalCELO = totalSupplyCELO();
 		uint256 totalSavingsCELO = this.totalSupply();
@@ -190,25 +190,25 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable, UsingRegistry {
 		}
 		// toUnlock formula comes from:
 		// (supply / totalCELO) === (supply - savingsAmount) / (totalCELO - toUnlock)
-		uint256 toUnlock = savingsAmount.mul(totalCELO).div(totalSavingsCELO);
+		toWithdraw = savingsAmount.mul(totalCELO).div(totalSavingsCELO);
 		uint256 nonvoting = _lockedGold.getAccountNonvotingLockedGold(address(this));
-		if (toUnlock > nonvoting) {
+		if (toWithdraw > nonvoting) {
 			revokeVotes(
-				toUnlock.sub(nonvoting),
+				toWithdraw.sub(nonvoting),
 				lesserAfterPendingRevoke,
 				greaterAfterPendingRevoke,
 				lesserAfterActiveRevoke,
 				greaterAfterActiveRevoke
 			);
 		}
-		_lockedGold.unlock(toUnlock);
+		_lockedGold.unlock(toWithdraw);
 
 		(uint256[] memory pendingValues, uint256[] memory pendingTimestamps) = _lockedGold.getPendingWithdrawals(address(this));
 		uint256 pendingValue = pendingValues[pendingValues.length - 1];
-		assert(pendingValue == toUnlock);
+		assert(pendingValue == toWithdraw);
 		pendingByAddr[msg.sender].push(PendingWithdrawal(pendingValue, pendingTimestamps[pendingTimestamps.length - 1]));
 		emit WithdrawStarted(msg.sender, savingsAmount, pendingValue);
-		return pendingValue;
+		return toWithdraw;
 	}
 
 	/// @dev Helper function to revoke cast votes. See documentation for .withdrawStart function for more
@@ -269,13 +269,13 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable, UsingRegistry {
 	/// was called. Thus caller might receive less SavingsCELO compared to what was supplied to .withdrawStart.
 	/// @param index index of pending withdrawal to finish as returned by .pendingWithdrawals() call.
 	/// @param indexGlobal index of matching pending withdrawal as returned by lockedGold.getPendingWithdrawals() call.
-	/// @return amount of sCELO tokens returned to the caller.
-	function withdrawCancel(uint256 index, uint256 indexGlobal) external returns (uint256) {
+	/// @return toMint amount of sCELO tokens returned to the caller.
+	function withdrawCancel(uint256 index, uint256 indexGlobal) external returns (uint256 toMint) {
 		PendingWithdrawal memory pending = popPendingWithdrawal(msg.sender, index, indexGlobal);
 		uint256 totalCELO = totalSupplyCELO();
 		uint256 totalSavingsCELO = this.totalSupply();
 		getLockedGold().relock(indexGlobal, pending.value);
-		uint256 toMint = savingsToMint(totalSavingsCELO, totalCELO, pending.value);
+		toMint = savingsToMint(totalSavingsCELO, totalCELO, pending.value);
 		_mint(msg.sender, toMint);
 		emit WithdrawCanceled(msg.sender, pending.value, toMint);
 		return toMint;
