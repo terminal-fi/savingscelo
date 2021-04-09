@@ -184,10 +184,9 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable, UsingRegistry {
 		// If there is any unlocked CELO, lock it to make rest of the logic always
 		// consistent. There should never be unlocked CELO in the contract unless some
 		// user explicitly donates it.
-		uint256 unlocked = address(this).balance;
 		ILockedGold _lockedGold = getLockedGold();
-		if (unlocked > 0) {
-			_lockedGold.lock{value: unlocked}();
+		if (address(this).balance > 0) {
+			_lockedGold.lock{value: address(this).balance}();
 		}
 		// toUnlock formula comes from:
 		// (supply / totalCELO) === (supply - savingsAmount) / (totalCELO - toUnlock)
