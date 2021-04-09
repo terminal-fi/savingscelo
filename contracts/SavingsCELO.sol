@@ -253,13 +253,15 @@ contract SavingsCELO is ERC20, IVoterProxy, Ownable, UsingRegistry {
 	/// @notice Finishes withdraw process, transfering unlocked CELO back to the caller.
 	/// @param index index of pending withdrawal to finish as returned by .pendingWithdrawals() call.
 	/// @param indexGlobal index of matching pending withdrawal as returned by lockedGold.getPendingWithdrawals() call.
-	function withdrawFinish(uint256 index, uint256 indexGlobal) external {
+	/// @return amount of CELO tokens withdrawn.
+	function withdrawFinish(uint256 index, uint256 indexGlobal) external returns (uint256) {
 		PendingWithdrawal memory pending = popPendingWithdrawal(msg.sender, index, indexGlobal);
 		getLockedGold().withdraw(indexGlobal);
 		require(
 			getGoldToken().transfer(msg.sender, pending.value),
 			"unexpected failure: CELO transfer has failed");
 		emit WithdrawFinished(msg.sender, pending.value);
+		return pending.value;
 	}
 
 	/// @notice Cancels withdraw process, re-locking CELO back in the contract and returning SavingsCELO tokens back
