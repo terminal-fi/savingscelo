@@ -110,12 +110,12 @@ async function main() {
 		SavingsCELOVoterV1Json.bytecode +
 		kit.web3.eth.abi.encodeParameters(['address'], [contractSavingsCELO]).slice(2),
 	)
-	await readAddressOrDeployContract(
-		kit, opts.network,
-		"SavingsCELOVGroup",
-		SavingsCELOVGroupJson.bytecode +
-		kit.web3.eth.abi.encodeParameters(['address'], [contractSavingsCELO]).slice(2),
-	)
+	// await readAddressOrDeployContract(
+	// 	kit, opts.network,
+	// 	"SavingsCELOVGroup",
+	// 	SavingsCELOVGroupJson.bytecode +
+	// 	kit.web3.eth.abi.encodeParameters(['address'], [contractSavingsCELO]).slice(2),
+	// )
 
 	const savingsKit = new SavingsKit(kit, contractSavingsCELO)
 	const voterAddr = await savingsKit.contract.methods._voter().call()
