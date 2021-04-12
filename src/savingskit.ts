@@ -30,7 +30,7 @@ export class SavingsKit {
 	public withdrawStart = async (savingsAmount: BigNumber.Value) => {
 		const lockedGold = await this.kit.contracts.getLockedGold()
 		const election = await this.kit.contracts.getElection()
-		const amt = new BigNumber(savingsAmount).toFixed(0)
+		const amt = new BigNumber(savingsAmount).toString(10)
 		const toUnlock = await this.contract.methods.savingsToCELO(amt).call()
 
 		const nonvoting = await lockedGold.getAccountNonvotingLockedGold(this.contractAddress)
@@ -77,7 +77,7 @@ export class SavingsKit {
 		} as PendingWithdrawal))
 	}
 
-	public withdrawFinish = async(
+	public withdrawFinish = async (
 		pendings: PendingWithdrawal[],
 		index: number) => {
 		const indexGlobal = await this.withdrawIndexGlobal(pendings, index)
@@ -85,7 +85,7 @@ export class SavingsKit {
 		return toTransactionObject(this.kit.connection, txo)
 	}
 
-	public withdrawCancel = async(
+	public withdrawCancel = async (
 		pendings: PendingWithdrawal[],
 		index: number) => {
 		const indexGlobal = await this.withdrawIndexGlobal(pendings, index)
@@ -93,7 +93,7 @@ export class SavingsKit {
 		return toTransactionObject(this.kit.connection, txo)
 	}
 
-	public withdrawIndexGlobal = async(pendings: PendingWithdrawal[], index: number) => {
+	public withdrawIndexGlobal = async (pendings: PendingWithdrawal[], index: number) => {
 		const lockedGold = await this.kit.contracts.getLockedGold()
 		const pendingsGlobal = await lockedGold.getPendingWithdrawals(this.contractAddress)
 		const idx = pendingsGlobal.findIndex((p) => (
@@ -103,5 +103,15 @@ export class SavingsKit {
 			throw Error(`{time: ${pendings[index].time}, value: ${pendings[index].value}} not found in pending withdrawals`)
 		}
 		return idx
+	}
+
+	public celoToSavings = async (celoAmount: BigNumber.Value): Promise<BigNumber> => {
+		const savingsAmount = await this.contract.methods.celoToSavings(new BigNumber(celoAmount).toString(10)).call()
+		return new BigNumber(savingsAmount)
+	}
+
+	public savingsToCELO = async (savingsAmount: BigNumber.Value): Promise<BigNumber> => {
+		const celoAmount = await this.contract.methods.savingsToCELO(new BigNumber(savingsAmount).toString(10)).call()
+		return new BigNumber(celoAmount)
 	}
 }
