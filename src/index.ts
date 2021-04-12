@@ -7,3 +7,4 @@ export { SavingsCelovGroup as SavingsCELOVGroup } from "../types/web3-v1-contrac
 
 export { address as SavingsCELOAddressAlfajores } from "./deploy/alfajores.SavingsCELO.addr.json"
 export { address as SavingsCELOAddressBaklava } from "./deploy/baklava.SavingsCELO.addr.json"
+export { address as SavingsCELOAddressMainnet } from "./deploy/mainnet.SavingsCELO.addr.json"

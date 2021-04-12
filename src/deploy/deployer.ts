@@ -26,6 +26,7 @@ const networks: {[key: string]: string} = {
 	"devchain": "http://127.0.0.1:7545",
 	"alfajores": "https://alfajores-forno.celo-testnet.org",
 	"baklava": "https://baklava-forno.celo-testnet.org",
+	"mainnet": "https://forno.celo.org",
 }
 
 // Relative path to the deploy folder changes depending on if it is run directly or using ts-node.
