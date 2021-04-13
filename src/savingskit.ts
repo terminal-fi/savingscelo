@@ -3,9 +3,7 @@ import { toTransactionObject } from "@celo/connect"
 import { PendingWithdrawal } from "@celo/contractkit/lib/wrappers/LockedGold"
 
 import BigNumber from "bignumber.js"
-import { SavingsCelo } from "../types/web3-v1-contracts/SavingsCELO"
-
-import savingsCELOJson from "../build/contracts/SavingsCELO.json"
+import { SavingsCelo, ABI } from "../types/web3-v1-contracts/SavingsCELO"
 
 /**
  * SavingsKit provides wrappers to interact with SavingsCELO contract.
@@ -18,8 +16,7 @@ export class SavingsKit {
 	constructor(
 		private kit: ContractKit,
 		public readonly contractAddress: Address) {
-		this.contract = new kit.web3.eth.Contract(
-			savingsCELOJson.abi as any, contractAddress) as unknown as SavingsCelo
+		this.contract = new kit.web3.eth.Contract(ABI, contractAddress) as unknown as SavingsCelo
 	}
 
 	public deposit = () => {

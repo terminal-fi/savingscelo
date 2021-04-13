@@ -2,8 +2,7 @@ import { Address, ContractKit } from "@celo/contractkit"
 import { toTransactionObject } from "@celo/connect"
 import BigNumber from "bignumber.js"
 
-import savingsCELOVoterV1Json from "../build/contracts/SavingsCELOVoterV1.json"
-import { SavingsCeloVoterV1 } from "../types/web3-v1-contracts/SavingsCELOVoterV1"
+import { SavingsCeloVoterV1, ABI } from "../types/web3-v1-contracts/SavingsCELOVoterV1"
 import { SavingsKit } from "./savingskit"
 
 export async function newVoterV1(kit: ContractKit, savingsKit: SavingsKit) {
@@ -23,8 +22,7 @@ export class VoterV1 {
 		private kit: ContractKit,
 		private savingsKit: SavingsKit,
 		public contractAddress: Address) {
-		this.contract = new kit.web3.eth.Contract(
-			savingsCELOVoterV1Json.abi as any, contractAddress) as unknown as SavingsCeloVoterV1
+		this.contract = new kit.web3.eth.Contract(ABI, contractAddress) as unknown as SavingsCeloVoterV1
 	}
 
 	changeVotedGroup = async(newGroup: Address) => {
