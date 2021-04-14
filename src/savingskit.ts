@@ -111,4 +111,48 @@ export class SavingsKit {
 		const celoAmount = await this.contract.methods.savingsToCELO(new BigNumber(savingsAmount).toString(10)).call()
 		return new BigNumber(celoAmount)
 	}
+
+	public totalCELOSupply = async (): Promise<BigNumber> => {
+		const goldToken = await this.kit.contracts.getGoldToken()
+		const lockedGold = await this.kit.contracts.getLockedGold()
+		const balance = goldToken.balanceOf(this.contractAddress)
+		const locked = lockedGold.getAccountTotalLockedGold(this.contractAddress)
+		return (await balance).plus(await locked)
+	}
+
+	public totalSavingsSupply = async (): Promise<BigNumber> => {
+		return new BigNumber(
+			await this.contract.methods.totalSupply().call())
+	}
+
+	public totalSupplies = async (): Promise<{celoTotal: BigNumber, savingsTotal: BigNumber}> => {
+		const celoTotal = this.totalCELOSupply()
+		const savingsTotal = this.totalSavingsSupply()
+		return {
+			celoTotal: await celoTotal,
+			savingsTotal: await savingsTotal,
+		}
+	}
+}
+
+export const savingsToCELO = (
+	savingsAmount: BigNumber.Value,
+	savingsTotal: BigNumber,
+	celoTotal: BigNumber,
+): BigNumber => {
+	if (savingsTotal.eq(0)) {
+		return new BigNumber(0)
+	}
+	return celoTotal.multipliedBy(savingsAmount).div(savingsAmount).integerValue(BigNumber.ROUND_DOWN)
+}
+
+export const celoToSavings = (
+	celoAmount: BigNumber.Value,
+	celoTotal: BigNumber,
+	savingsTotal: BigNumber,
+): BigNumber => {
+	if (celoTotal.eq(0) || savingsTotal.eq(0)) {
+		return new BigNumber(celoAmount).multipliedBy(65536)
+	}
+	return savingsTotal.multipliedBy(celoAmount).div(celoTotal).integerValue(BigNumber.ROUND_DOWN)
 }
