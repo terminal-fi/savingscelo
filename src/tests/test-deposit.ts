@@ -152,6 +152,14 @@ contract('SavingsCELO - Deposits', (accounts) => {
 		assert.isTrue(contractCELO.plus(toDonate1).eq(contractCELO_3))
 	})
 
+	it(`test CELO <-> sCELO conversions`, async () => {
+		const {celoTotal, savingsTotal} = await savingsKit.totalSupplies()
+		assert.isTrue(
+			(await savingsKit.celoToSavings(33e18)).eq(celoToSavings(33e18, celoTotal, savingsTotal)))
+		assert.isTrue(
+			(await savingsKit.savingsToCELO(3305e18)).eq(savingsToCELO(3305e18, savingsTotal, celoTotal)))
+	})
+
 	it(`test withdrawing unlocked donation`, async () => {
 		const goldToken = await kit.contracts.getGoldToken()
 		const lockedGold = await kit.contracts.getLockedGold()
@@ -207,14 +215,6 @@ contract('SavingsCELO - Deposits', (accounts) => {
 			await savingsCELO.withdrawCancel(2, 0)
 			assert.fail("withdrawCancel must have failed")
 		} catch {}
-	})
-
-	it(`test CELO <-> sCELO conversions`, async () => {
-		const {celoTotal, savingsTotal} = await savingsKit.totalSupplies()
-		assert.isTrue(
-			(await savingsKit.celoToSavings(33e18)).eq(celoToSavings(33e18, celoTotal, savingsTotal)))
-		assert.isTrue(
-			(await savingsKit.savingsToCELO(3305e18)).eq(savingsToCELO(3305e18, savingsTotal, celoTotal)))
 	})
 })
 

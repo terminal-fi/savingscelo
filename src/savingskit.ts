@@ -143,7 +143,7 @@ export const savingsToCELO = (
 	if (savingsTotal.eq(0)) {
 		return new BigNumber(0)
 	}
-	return celoTotal.multipliedBy(savingsAmount).div(savingsAmount).integerValue(BigNumber.ROUND_DOWN)
+	return celoTotal.multipliedBy(savingsAmount).div(savingsTotal).integerValue(BigNumber.ROUND_DOWN)
 }
 
 export const celoToSavings = (
