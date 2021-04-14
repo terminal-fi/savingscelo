@@ -212,9 +212,9 @@ contract('SavingsCELO - Deposits', (accounts) => {
 	it(`test CELO <-> sCELO conversions`, async () => {
 		const {celoTotal, savingsTotal} = await savingsKit.totalSupplies()
 		assert.isTrue(
-			(await savingsKit.celoToSavings(33e18)).eq(await celoToSavings(33e18, celoTotal, savingsTotal)))
+			(await savingsKit.celoToSavings(33e18)).eq(celoToSavings(33e18, celoTotal, savingsTotal)))
 		assert.isTrue(
-			(await savingsKit.savingsToCELO(3305e18)).eq(await savingsToCELO(3305e18, savingsTotal, celoTotal)))
+			(await savingsKit.savingsToCELO(3305e18)).eq(savingsToCELO(3305e18, savingsTotal, celoTotal)))
 	})
 })
 
