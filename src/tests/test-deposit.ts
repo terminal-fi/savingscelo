@@ -2,7 +2,7 @@ import { toWei } from "web3-utils"
 import { newKit } from "@celo/contractkit"
 import BigNumber from "bignumber.js";
 import { increaseTime, Provider } from "celo-devchain"
-import { SavingsKit } from "../savingskit";
+import { celoToSavings, SavingsKit, savingsToCELO } from "../savingskit";
 import { Deposited, SavingsCELOInstance } from "../../types/truffle-contracts/SavingsCELO";
 import { createAccounts } from "./utils";
 
@@ -207,6 +207,14 @@ contract('SavingsCELO - Deposits', (accounts) => {
 			await savingsCELO.withdrawCancel(2, 0)
 			assert.fail("withdrawCancel must have failed")
 		} catch {}
+	})
+
+	it(`test CELO <-> sCELO conversions`, async () => {
+		const {celoTotal, savingsTotal} = await savingsKit.totalSupplies()
+		assert.isTrue(
+			(await savingsKit.celoToSavings(33e18)).eq(await celoToSavings(33e18, celoTotal, savingsTotal)))
+		assert.isTrue(
+			(await savingsKit.savingsToCELO(3305e18)).eq(await savingsToCELO(3305e18, savingsTotal, celoTotal)))
 	})
 })
 
