@@ -1578,10 +1578,10 @@ cbor@^5.1.0:
     bignumber.js "^9.0.1"
     nofilter "^1.0.4"
 
-celo-devchain@^3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/celo-devchain/-/celo-devchain-3.1.0.tgz#9d05975ba97cc089a39b62b7e53f469a48cfb491"
-  integrity sha512-2YawZJ+I3pyzSiuzPqnFBsQeeLAyR2cdXkF7oAZIYriIs6vfyoQzfPE5FLuEPUw6x1vxUPRQxMOTKVvHvHaywA==
+celo-devchain@^3.1.1:
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/celo-devchain/-/celo-devchain-3.1.1.tgz#df0d465261e093ca4feb73265cfe8ad8ed35aa7c"
+  integrity sha512-s2xNKXx8n+ICflHhg8TnOz167hyUpvKRn3JsmVQrSwqN94A5OTFPqFxrdi/3C2TO4Q7szP4vlXy9SxX1cc6A4g==
   dependencies:
     "@celo/contractkit" "^1.2.0"
     "@celo/ganache-cli" "git+https://github.com/celo-org/ganache-cli.git#e933297"
