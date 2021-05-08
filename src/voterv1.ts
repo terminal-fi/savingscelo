@@ -86,6 +86,7 @@ export class VoterV1 {
 		const groupVotes = await election.getValidatorGroupVotes(votedGroup)
 		return BigNumber.minimum(
 			toVote,
-			BigNumber.maximum(groupVotes.capacity.minus(groupVotes.votes), 0))
+			groupVotes.capacity,
+		)
 	}
 }
