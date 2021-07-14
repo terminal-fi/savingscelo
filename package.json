@@ -26,8 +26,7 @@
     "celo-devchain": "^3.2.1",
     "commander": "^7.2.0",
     "eth-gas-reporter": "^0.2.22",
-    "truffle": "^5.1.54",
-    "truffle-flattener": "^1.5.0",
+    "truffle": "^5.4.0",
     "truffle-typings": "^1.0.8",
     "typechain": "^4.0.0",
     "typescript": "^4.0.5"
