@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@celo/governance": "^1.2.4",
+    "@celo/explorer": "^1.2.4",
     "@celo/typechain-target-web3-v1-celo": "^0.1.0-beta3",
     "@celo/wallet-ledger": "^1.2.4",
     "@ledgerhq/hw-transport-node-hid": "^5.48.0",
