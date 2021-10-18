@@ -3,7 +3,7 @@
   "version": "3.4.0",
   "description": "SavingsCELO contracts and @celo/contractkit based SDK",
   "repository": {
-    "url": "https://github.com/zviadm/savingscelo"
+    "url": "https://github.com/terminal-fi/savingscelo"
   },
   "dependencies": {
     "@celo/connect": "^1.2.4",
