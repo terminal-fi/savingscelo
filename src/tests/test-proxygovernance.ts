@@ -67,22 +67,22 @@ contract('SavingsCELO - Governance', (accounts) => {
 			.deposit()
 			.sendAndWaitForReceipt({from: proxyVoter, value: toWei('1000', 'ether')})
 
-		const cfg = await kit.getNetworkConfig()
+		const governance = await kit.contracts.getGovernance()
+		const cfg = await governance.getConfig()
 		// This should expire all existing proposals.
 		await increaseTime(
 			kit.web3.currentProvider as Provider,
-			cfg.governance.dequeueFrequency
-				.plus(cfg.governance.stageDurations.Approval)
-				.plus(cfg.governance.stageDurations.Referendum)
-				.plus(cfg.governance.stageDurations.Execution).toNumber())
+			cfg.dequeueFrequency
+				.plus(cfg.stageDurations.Approval)
+				.plus(cfg.stageDurations.Referendum)
+				.plus(cfg.stageDurations.Execution).toNumber())
 
-		const governance = await kit.contracts.getGovernance()
 		const proposal = await new ProposalBuilder(kit).build()
 		await governance
 			.propose(proposal, 'URL')
 			.sendAndWaitForReceipt({
 				from: owner,
-				value: cfg.governance.minDeposit.toFixed(0)})
+				value: cfg.minDeposit.toFixed(0)})
 
 		const queue = await governance.getQueue()
 		assert.lengthOf(queue, 1)
@@ -105,7 +105,7 @@ contract('SavingsCELO - Governance', (accounts) => {
 		assert.lengthOf(queue3, 1)
 		assert.isTrue(queue3[0].upvotes.eq(0), `upvotes: ${queue3[0].upvotes}`)
 
-		await increaseTime(kit.web3.currentProvider as Provider, cfg.governance.dequeueFrequency.toNumber())
+		await increaseTime(kit.web3.currentProvider as Provider, cfg.dequeueFrequency.toNumber())
 		await governance
 			.dequeueProposalsIfReady()
 			.sendAndWaitForReceipt({from: owner})
@@ -116,7 +116,7 @@ contract('SavingsCELO - Governance', (accounts) => {
 		await (await governanceApproverMultiSig
 			.submitOrConfirmTransaction(governance.address, govTX.txo))
 			.sendAndWaitForReceipt({from: owner})
-		await increaseTime(kit.web3.currentProvider as Provider, cfg.governance.stageDurations.Approval.toNumber())
+		await increaseTime(kit.web3.currentProvider as Provider, cfg.stageDurations.Approval.toNumber())
 
 		console.debug(`voting for: ${proposalID}...`)
 		const deq = await governance.getDequeue()
@@ -135,7 +135,7 @@ contract('SavingsCELO - Governance', (accounts) => {
 				`${v} votes: ${pVotes}`)
 		}
 
-		await increaseTime(kit.web3.currentProvider as Provider, cfg.governance.stageDurations.Referendum.toNumber())
+		await increaseTime(kit.web3.currentProvider as Provider, cfg.stageDurations.Referendum.toNumber())
 		await (await governance
 			.execute(proposalID))
 			.sendAndWaitForReceipt({from: owner})
