@@ -25,7 +25,7 @@ async function main() {
 			},
 		)
 	} catch (e) {
-		console.error(`Error:`, e.response?.data)
+		console.error(`Error:`, (e as any).response?.data)
 	}
 }
 main()
