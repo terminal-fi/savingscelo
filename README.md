@@ -53,7 +53,7 @@ converted to CELO and deposited back into SavingsCELO contract.
 
 You can interact with the SavingsCELO contracts using a command-line interface.
 ```
-> npm install -g savingscelo-cli@latest
+> npm install -g @terminal-fi/savingscelo-cli@latest
 > savingscli --help
 ```
 
